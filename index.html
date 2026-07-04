@@ -173,6 +173,9 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 .tbl{flex-direction:column;gap:0}
 .tbl .tnr2{font-size:13px;font-weight:800;line-height:1.1}
 .tbl .tijdje{font-size:8px;font-weight:800;line-height:1.2;letter-spacing:.02em}
+.tbl.verwacht{background:#5b9dff;border-color:#2f6fd8;color:#0a2145}
+.tbl.verwacht .chair{background:#2f6fd8}
+.tbl.verwacht small{color:#e2eeff;background:none}
 .tbl.res{background:var(--accent2);border-color:var(--accent);color:#2b1105}
 .tbl.res .chair{background:var(--accent)}
 .tbl.res small{color:#ffd9c4;background:none}
@@ -353,6 +356,8 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
 .tlNowDot{position:absolute;top:2px;width:10px;height:10px;border-radius:50%;background:#e5304d;transform:translateX(-50%)}
 .tlBlock{position:absolute;top:4px;bottom:4px;background:var(--accent2);border-left:8px solid var(--accent);border-radius:6px;color:#1a0d05;display:flex;align-items:center;gap:7px;padding:0 8px;overflow:hidden;white-space:nowrap;font-size:13.5px;cursor:pointer}
 .tlBlock.in{background:#3ecf8e;border-left-color:var(--green);color:#06281a}
+.tlBlock.verwacht{background:#5b9dff;border-left-color:#2f6fd8;color:#0a2145}
+.tlBlock.verwacht .tlNote{opacity:.85}
 .tlBlock b{font-size:15px}
 .tlNaam{font-weight:700;overflow:hidden;text-overflow:ellipsis}
 .tlTag{font-size:10px;font-weight:800;padding:2px 6px;border-radius:5px;background:rgba(0,0,0,.25);color:#fff}
@@ -1160,14 +1165,11 @@ const MANAGER_PIN = '5555';
 document.getElementById('btnWisPA').onclick = ()=>{
   const pas = getRes().filter(r=>r.bron==='pa');
   if(!pas.length){ toast('Geen PA-reserveringen op deze dag'); return; }
-  const code = prompt('Managercode invoeren om te verwijderen:');
-  if(code === null) return;
-  if(code.trim() !== MANAGER_PIN){ toast('Onjuiste managercode'); return; }
-  vraag('<b>'+pas.length+' PA-reserveringen</b> van '+fmtDate(curDate)+' verwijderen?<br><small style="color:var(--muted)">Handmatig toegevoegde reserveringen blijven staan.</small>', ()=>{
+  vraagPin(()=>vraag('<b>'+pas.length+' PA-reserveringen</b> van '+fmtDate(curDate)+' verwijderen?<br><small style="color:var(--muted)">Handmatig toegevoegde reserveringen blijven staan.</small>', ()=>{
     pas.forEach(r=>syncDelRes(curDate, r.id));
     setRes(getRes().filter(r=>r.bron!=='pa'));
     toast(pas.length+' PA-reserveringen verwijderd');
-  });
+  }));
 };
 
 /* ============ FORMULIER ============ */
@@ -1547,6 +1549,39 @@ function verankerBijVeld(ov, box, veld){
 }
 
 /* ============ BEVESTIGINGSDIALOOG ============ */
+function vraagPin(cb){
+  const ov = document.createElement('div');
+  ov.className = 'mcalOv';
+  ov.innerHTML = `<div class="vraagBox" style="text-align:center">
+    <p style="margin-bottom:4px"><b>Managercode</b></p>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:12px">Voer de code in om te verwijderen</p>
+    <input id="pinVeld" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"
+      style="width:100%;text-align:center;font-size:26px;letter-spacing:12px;background:var(--panel2,#1d2029);border:1px solid var(--line,#3a3f4d);border-radius:10px;padding:12px;color:inherit;outline:none">
+    <div id="pinFout" style="color:#e5304d;font-size:13px;min-height:18px;margin-top:8px"></div>
+    <div class="sheetBtns" style="margin-top:6px">
+      <button class="btn ghost" id="pinNee">Annuleren</button>
+      <button class="btn primary" id="pinJa">OK</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  const veld = ov.querySelector('#pinVeld');
+  const fout = ov.querySelector('#pinFout');
+  setTimeout(()=>veld.focus(), 50);
+  const check = ()=>{
+    if(veld.value.trim() === MANAGER_PIN){ ov.remove(); cb(); }
+    else{
+      fout.textContent = 'Onjuiste code';
+      veld.value = '';
+      veld.focus();
+      if(navigator.vibrate) navigator.vibrate(80);
+    }
+  };
+  ov.querySelector('#pinJa').onclick = check;
+  veld.onkeydown = (e)=>{ if(e.key === 'Enter') check(); };
+  ov.querySelector('#pinNee').onclick = ()=>ov.remove();
+  ov.onclick = (e)=>{ if(e.target===ov) ov.remove(); };
+}
+
 function vraag(msg, cb){
   const ov = document.createElement('div');
   ov.className = 'mcalOv';
@@ -1854,7 +1889,8 @@ function renderTafels(all){
         const dim = INACTIVE.has(r.status);
         const s = px(eff);
         const w = Math.max(56, (dur/60)*PXH - 4);
-        blocks += `<div class="tlBlock ${r.status==='in'?'in':''}${dim?' no':''}" style="left:${s}px;width:${w}px;border-left-color:${st.c}" onclick="openFormById('${r.id}')">
+        const kls = r.status==='in' ? 'in' : (r.status==='arr' ? '' : 'verwacht');
+        blocks += `<div class="tlBlock ${kls}${dim?' no':''}" style="left:${s}px;width:${w}px;border-left-color:${st.c}" onclick="openFormById('${r.id}')">
           <b>${r.pax}</b><span class="tlNaam">${esc(r.naam)}</span><span class="tlTag" style="background:${arrKleur(r.arr)}">${esc(r.arr)}</span>${r.notitie?`<span class="tlNote">${esc(r.notitie)}</span>`:''}
         </div>`;
       });
@@ -1964,7 +2000,8 @@ function renderMap(all){
         <div id="mapWrap" class="${editMode?'editMode':''}"><div id="mapSizer"><div id="mapCanvas"></div></div></div>
         <div class="legend">
           <span><i style="background:var(--panel2);border:1px solid var(--line)"></i>Vrij</span>
-          <span><i style="background:var(--accent2)"></i>Gereserveerd</span>
+          <span><i style="background:#5b9dff"></i>Nog niet gemeld</span>
+          <span><i style="background:var(--accent2)"></i>Gemeld</span>
           <span><i style="background:#3ecf8e"></i>Aan tafel</span>
           <span style="margin-left:auto">Sleep om te schuiven</span>
         </div>
@@ -2013,7 +2050,7 @@ function renderMap(all){
       el.style.left = lay[t.nr].x+'%';
       el.style.top = lay[t.nr].y+'%';
       if(r){
-        el.classList.add(r.status==='in' ? 'in' : 'res');
+        el.classList.add(r.status==='in' ? 'in' : (r.status==='arr' ? 'res' : 'verwacht'));
         el.innerHTML = `<span class="tnr2">${esc(t.nr)}</span><span class="tijdje">${esc(r.tijd)}-${minNaarTijd(tijdNaarMin(r.tijd)+(r.duur||90))}</span>`;
         const s = document.createElement('small');
         s.textContent = r.pax+' p. '+(r.naam.length>13 ? r.naam.slice(0,12)+'\u2026' : r.naam);
