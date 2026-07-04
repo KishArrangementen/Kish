@@ -818,6 +818,8 @@ function openScanner(){
   const reader = new ZXing.MultiFormatReader();
   reader.setHints(hints);
 
+  window._scanNummers = new Set();      // alle nummers van deze scansessie (code + tekst)
+  window._scanCodeNummers = new Set();  // alleen nummers die echt uit de matrixcode komen
   const stop = ()=>{
     if(timer) clearInterval(timer);
     try{ if(stream) stream.getTracks().forEach(t=>t.stop()); }catch(e){}
@@ -830,19 +832,37 @@ function openScanner(){
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-  const gevonden = (data)=>{
+  const gevonden = async (data)=>{
     if(!data) return;
-    if(Date.now() < pauzeTot) return;
+    if(data === laatste && Date.now() < pauzeTot) return;  // zelfde code even negeren, nieuwe code mag direct
     laatste = data;
-    pauzeTot = Date.now() + 2000;
+    pauzeTot = Date.now() + 2500;
     if(navigator.vibrate) navigator.vibrate(60);
     try{
+      window._scanTekst = String(data);
+      if(!window._scanNummers) window._scanNummers = new Set();
+      if(!window._scanCodeNummers) window._scanCodeNummers = new Set();
+      (String(data).match(/\d{4,}/g) || []).forEach(n => { window._scanNummers.add(n); window._scanCodeNummers.add(n); });
+      window._scanNummers.add(String(data).trim()); window._scanCodeNummers.add(String(data).trim());
+      // Al een match op de code zelf (bijv. eerder gekoppeld kaartnummer)? Dan meteen tonen
+      if(vindScanMatches().length){ toonScanResultaat(ov, data); return; }
+      // Geen match: het ticket staat nu scherp in beeld, dus stil een foto pakken en de tekst eronder lezen
+      const foto = document.createElement('canvas');
+      foto.width = video.videoWidth; foto.height = video.videoHeight;
+      foto.getContext('2d').drawImage(video, 0, 0);
+      const box = ov.querySelector('#scanRes');
+      if(box) box.innerHTML = '<div class="scanGeen" style="color:var(--tekst,#fff)">Code gelezen, ticket controleren...</div>';
+      try{ await ocrNummers(foto); }catch(e){ /* tekstlezer niet beschikbaar, val terug op gewone weergave */ }
       toonScanResultaat(ov, data);
     }catch(e){
       const box = ov.querySelector('#scanRes');
       if(box) box.innerHTML = '<div class="scanGeen">Code gelezen, maar tonen mislukt</div><small style="color:var(--muted);word-break:break-all">'+String(e && e.message || e).slice(0,200)+'<br>Code: '+String(data).slice(0,80)+'</small>';
     }
   };
+  // Tekstlezer alvast op de achtergrond klaarzetten zodat de eerste scan vlot gaat
+  laadTesseract().then(()=>{
+    if(!window._tessWorker && window.Tesseract) return Tesseract.createWorker('eng').then(w=>{ window._tessWorker = w; });
+  }).catch(()=>{});
 
   const probeer = ()=>{
     if(bezig || !video.videoWidth) return;
@@ -905,21 +925,90 @@ function naamInTekst(r, tekstLower){
   return delen.some(d => tekstLower.includes(d));
 }
 
+function vindScanMatches(){
+  const all = getRes();
+  const nummers = window._scanNummers ? [...window._scanNummers] : [];
+  const tekstLower = String(window._scanTekst || '').toLowerCase();
+  return all.filter(r =>
+    (r.orders||[]).some(o => nummers.includes(String(o))) || naamInTekst(r, tekstLower)
+  );
+}
+
+async function ocrNummers(canvas){
+  await laadTesseract();
+  const worker = window._tessWorker || (window._tessWorker = await Tesseract.createWorker('eng'));
+  await worker.setParameters({ tessedit_char_whitelist: '0123456789:aeiKkmnNOrdstu ' });
+  const { data } = await worker.recognize(canvas);
+  const gevonden = (String(data.text||'').match(/\d{4,}/g) || []);
+  if(!window._scanNummers) window._scanNummers = new Set();
+  gevonden.forEach(n => window._scanNummers.add(n));
+  return gevonden;
+}
+
+let _tessKlaar = null;
+function laadTesseract(){
+  if(window.Tesseract) return Promise.resolve();
+  if(_tessKlaar) return _tessKlaar;
+  _tessKlaar = new Promise((res, rej)=>{
+    const sc = document.createElement('script');
+    sc.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    sc.onload = res;
+    sc.onerror = ()=>rej(new Error('Tekstlezer kon niet laden. Is er internet?'));
+    document.head.appendChild(sc);
+  });
+  return _tessKlaar;
+}
+
+window.leesTekstScan = async ()=>{
+  const ov = document.querySelector('.scanOv');
+  const box = ov && ov.querySelector('#scanRes');
+  const video = ov && ov.querySelector('#scanVideo');
+  if(!box || !video || !video.videoWidth){ if(box) box.innerHTML = '<div class="scanGeen">Geen camerabeeld</div>'; return; }
+  const c = document.createElement('canvas');
+  c.width = video.videoWidth; c.height = video.videoHeight;
+  c.getContext('2d').drawImage(video, 0, 0);
+  box.innerHTML = '<div class="scanGeen" style="color:var(--tekst,#fff)">Ticket controleren...</div>';
+  try{
+    await ocrNummers(c);
+    toonScanResultaat(ov, window._scanTekst || '');
+  }catch(e){
+    box.innerHTML = '<div class="scanGeen">Controleren mislukt</div><small style="color:var(--muted);word-break:break-all">'+String(e && e.message || e).slice(0,180)+'</small><div class="sheetBtns" style="margin-top:12px"><button class="btn green" onclick="leesTekstScan()">Opnieuw</button><button class="btn primary" onclick="koppelScan()">Koppelen aan een gast</button></div>';
+  }
+};
+
 function toonScanResultaat(ov, tekst){
   const box = ov.querySelector('#scanRes');
   const all = getRes();
   window._scanTekst = String(tekst);
   const tekstLower = String(tekst).toLowerCase();
-  // Alle langere cijferreeksen uit de QR halen + de hele tekst zelf
-  const nummers = (String(tekst).match(/\d{5,}/g) || []).concat(String(tekst).trim());
-  const matches = all.filter(r =>
-    (r.orders||[]).some(o => nummers.includes(String(o))) || naamInTekst(r, tekstLower)
-  );
+  // Alle cijferreeksen uit deze code bij de sessie optellen (meerdere codes op 1 ticket)
+  if(!window._scanNummers) window._scanNummers = new Set();
+  (String(tekst).match(/\d{4,}/g) || []).forEach(n => window._scanNummers.add(n));
+  window._scanNummers.add(String(tekst).trim());
+  const matches = vindScanMatches();
   if(!matches.length){
-    box.innerHTML = `<div class="scanGeen">Geen reservering gevonden voor deze code</div>
-      <small style="color:var(--muted);word-break:break-all">${esc(String(tekst).slice(0,140))}</small>
-      <div class="sheetBtns" style="margin-top:12px"><button class="btn primary" onclick="koppelScan()">Koppelen aan een gast</button></div>`;
+    box.innerHTML = `<div class="scanGeen">Geen reservering gevonden</div>
+      <small style="color:var(--muted);display:block;margin-top:8px">Houd het ticket stil met de code en de tekst eronder scherp in beeld en scan opnieuw.</small>
+      <div class="sheetBtns" style="margin-top:12px">
+        <button class="btn green" onclick="leesTekstScan()">Opnieuw controleren</button>
+        <button class="btn primary" onclick="koppelScan()">Koppelen aan een gast</button>
+      </div>`;
     return;
+  }
+  // Unieke treffer: kaartnummer uit de code stil bij de gast opslaan, dan is de volgende scan van dit ticket direct raak
+  if(matches.length === 1 && window._scanCodeNummers && window._scanCodeNummers.size){
+    const r0 = matches[0];
+    const nieuwNrs = [...window._scanCodeNummers].filter(n => !(r0.orders||[]).includes(String(n)));
+    if(nieuwNrs.length){
+      const list = getRes();
+      const rl = list.find(x=>x.id===r0.id);
+      if(rl){
+        rl.orders = [...new Set([...(rl.orders||[]), ...nieuwNrs.map(String)])];
+        rl.bewerkt = Date.now();
+        syncSetRes(curDate, rl);
+        setRes(list);
+      }
+    }
   }
   box.innerHTML = matches.map(r=>{
     const tfs = getTafels(r);
@@ -974,7 +1063,11 @@ window.koppelAan = (id)=>{
   const list = getRes();
   const r = list.find(x=>x.id===id); if(!r) return;
   const tekst = window._scanTekst || '';
-  const nrs = (tekst.match(/\d{5,}/g) || [tekst.trim()]).filter(Boolean).map(String);
+  const nrs = [...new Set([
+    ...((tekst.match(/\d{4,}/g)) || []),
+    ...(window._scanNummers ? [...window._scanNummers] : []),
+    tekst.trim()
+  ])].filter(Boolean).map(String);
   if(!nrs.length){ toast('Geen bruikbare code'); return; }
   r.orders = [...new Set([...(r.orders||[]), ...nrs])];
   r.bewerkt = Date.now();
