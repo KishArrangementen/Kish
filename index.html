@@ -841,8 +841,14 @@ function openScanner(){
       };
       loop();
     })
-    .catch(()=>{
-      ov.querySelector('#scanRes').innerHTML = '<div class="scanGeen">Camera niet beschikbaar</div><small style="color:var(--muted)">Sta cameratoegang toe in de browserinstellingen.</small>';
+    .catch((e)=>{
+      let uitleg = 'Sta cameratoegang toe in de browserinstellingen.';
+      const naam = (e && e.name) || '';
+      if(naam === 'NotAllowedError') uitleg = 'Toegang geweigerd. Tik op het slotje naast het webadres, zet Camera op Toestaan en herlaad de pagina.';
+      else if(naam === 'NotFoundError') uitleg = 'Geen camera gevonden op dit apparaat.';
+      else if(naam === 'NotReadableError') uitleg = 'De camera is bezet door een andere app. Sluit die app en probeer opnieuw.';
+      else if(!window.jsQR) uitleg = 'Scanner-onderdeel kon niet laden. Controleer de internetverbinding en herlaad.';
+      ov.querySelector('#scanRes').innerHTML = '<div class="scanGeen">Camera niet beschikbaar</div><small style="color:var(--muted)">'+uitleg+(naam?' ('+naam+')':'')+'</small>';
     });
 }
 
