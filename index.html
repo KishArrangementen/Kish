@@ -802,41 +802,80 @@ function openScanner(){
     <div class="scanRes" id="scanRes">Richt de camera op de code van het ticket</div>`;
   document.body.appendChild(ov);
 
-  let reader = null;
-  try{
-    const hints = new Map();
-    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-      ZXing.BarcodeFormat.QR_CODE,
-      ZXing.BarcodeFormat.DATA_MATRIX,
-      ZXing.BarcodeFormat.AZTEC,
-      ZXing.BarcodeFormat.PDF_417,
-      ZXing.BarcodeFormat.CODE_128,
-      ZXing.BarcodeFormat.CODE_39,
-      ZXing.BarcodeFormat.EAN_13,
-      ZXing.BarcodeFormat.ITF
-    ]);
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-    reader = new ZXing.BrowserMultiFormatReader(hints, 300);
-  }catch(e){
-    ov.querySelector('#scanRes').innerHTML = '<div class="scanGeen">Scanner kon niet starten</div>';
-  }
-  const stop = ()=>{ try{ if(reader) reader.reset(); }catch(e){} ov.remove(); };
-  ov.querySelector('#scanX').onclick = stop;
-  if(!reader) return;
+  let stream = null, timer = null, bezig = false;
+  const hints = new Map();
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+    ZXing.BarcodeFormat.QR_CODE,
+    ZXing.BarcodeFormat.DATA_MATRIX,
+    ZXing.BarcodeFormat.AZTEC,
+    ZXing.BarcodeFormat.PDF_417,
+    ZXing.BarcodeFormat.CODE_128,
+    ZXing.BarcodeFormat.CODE_39,
+    ZXing.BarcodeFormat.EAN_13,
+    ZXing.BarcodeFormat.ITF
+  ]);
+  hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+  const reader = new ZXing.MultiFormatReader();
+  reader.setHints(hints);
 
-  let laatste = '', pauzeTot = 0;
+  const stop = ()=>{
+    if(timer) clearInterval(timer);
+    try{ if(stream) stream.getTracks().forEach(t=>t.stop()); }catch(e){}
+    ov.remove();
+  };
+  ov.querySelector('#scanX').onclick = stop;
+
+  let laatste = '', pauzeTot = 0, tik = 0;
   const video = ov.querySelector('#scanVideo');
-  reader.decodeFromConstraints({ video:{ facingMode:'environment' }, audio:false }, video, (result, err)=>{
-      if(!result) return; // err is normaal zolang er geen code in beeld is
-      const data = result.getText();
-      if(!data) return;
-      if(Date.now() < pauzeTot && data === laatste) return;
-      if(Date.now() < pauzeTot) return;
-      laatste = data;
-      pauzeTot = Date.now() + 2000;
-      if(navigator.vibrate) navigator.vibrate(60);
-      toonScanResultaat(ov, data);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+  const gevonden = (data)=>{
+    if(!data) return;
+    if(Date.now() < pauzeTot) return;
+    laatste = data;
+    pauzeTot = Date.now() + 2000;
+    if(navigator.vibrate) navigator.vibrate(60);
+    toonScanResultaat(ov, data);
+  };
+
+  const probeer = ()=>{
+    if(bezig || !video.videoWidth) return;
+    bezig = true;
+    try{
+      tik++;
+      const vw = video.videoWidth, vh = video.videoHeight;
+      let sx, sy, sw, sh;
+      if(tik % 2){
+        // Middenvierkant (het kader): Data Matrix vult dan het beeld
+        const z = Math.floor(Math.min(vw, vh) * 0.7);
+        sx = Math.floor((vw - z) / 2); sy = Math.floor((vh - z) / 2); sw = z; sh = z;
+      }else{
+        // Volledig beeld, voor codes die verder weg zijn
+        sx = 0; sy = 0; sw = vw; sh = vh;
+      }
+      const schaal = Math.min(1, 800 / sw);
+      canvas.width = Math.floor(sw * schaal);
+      canvas.height = Math.floor(sh * schaal);
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      const bron = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
+      const bitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(bron));
+      const result = reader.decodeWithState(bitmap);
+      if(result) gevonden(result.getText());
+    }catch(e){ /* NotFound is normaal zolang er geen code in beeld is */ }
+    bezig = false;
+  };
+
+  navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:'environment', width:{ ideal:1920 }, height:{ ideal:1080 } },
+      audio:false
     })
+    .then((st)=>{
+      stream = st;
+      video.srcObject = st;
+      return video.play();
+    })
+    .then(()=>{ timer = setInterval(probeer, 250); })
     .catch((e)=>{
       let uitleg = 'Sta cameratoegang toe in de browserinstellingen.';
       const naam = (e && e.name) || '';
