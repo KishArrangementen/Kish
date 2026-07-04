@@ -664,12 +664,12 @@ function closeDrawer(){ drawer.classList.remove('open'); scrim.classList.remove(
 document.getElementById('btnMenu').onclick = openDrawer;
 scrim.onclick = closeDrawer;
 drawer.querySelectorAll('nav button[data-view]').forEach(b=>{
-  b.onclick = ()=>{ curView = b.dataset.view; store.set('ct_view',curView); closeDrawer(); render(); };
+  b.onclick = ()=>{ curView = b.dataset.view; store.set('ct_view',curView); if(curView==='map') mapUserZoom = false; closeDrawer(); render(); };
 });
 
 /* ============ ICOONBALK (desktop) ============ */
 document.querySelectorAll('#sideRail button[data-view]').forEach(b=>{
-  b.onclick = ()=>{ curView = b.dataset.view; store.set('ct_view',curView); render(); };
+  b.onclick = ()=>{ curView = b.dataset.view; store.set('ct_view',curView); if(curView==='map') mapUserZoom = false; render(); };
 });
 
 /* ============ EXPORT / IMPORT ============ */
@@ -895,6 +895,14 @@ function openScanner(){
       const box = ov.querySelector('#scanRes');
       if(box) box.innerHTML = '<div class="scanGeen">Camera niet beschikbaar</div><small style="color:var(--muted)">'+uitleg+(naam?' ('+naam+')':'')+'</small>';
     });
+}
+
+function naamInTekst(r, tekstLower){
+  // Match op achternaam uit de QR-inhoud, alleen bij namen van 4+ tekens om valse treffers te voorkomen
+  const naam = String(r.naam || '').toLowerCase().trim();
+  if(!naam) return false;
+  const delen = naam.split(/[\s,]+/).filter(d => d.length >= 4);
+  return delen.some(d => tekstLower.includes(d));
 }
 
 function toonScanResultaat(ov, tekst){
@@ -1692,7 +1700,7 @@ const SHIFTS = {
   avond:  {n:'Avond',   s:18*60, e:27*60}
 };
 let tlShift = store.get('ct_shift','avond');
-let tlZoom = 1;
+let tlZoom = +store.get('ct_tlzoom', 1) || 1;
 
 function renderTafels(all){
   const sh = SHIFTS[tlShift] || SHIFTS.avond;
@@ -1705,15 +1713,16 @@ function renderTafels(all){
   locTabs.querySelectorAll('button[data-s]').forEach(b=>b.onclick=()=>{ tlShift=b.dataset.s; store.set('ct_shift',tlShift); render(); });
   locTabs.querySelectorAll('button[data-z]').forEach(b=>b.onclick=()=>{
     if(b.dataset.z==='in') tlZoom = Math.min(2, +(tlZoom+0.2).toFixed(1));
-    else if(b.dataset.z==='out') tlZoom = Math.max(0.6, +(tlZoom-0.2).toFixed(1));
+    else if(b.dataset.z==='out') tlZoom = Math.max(0.4, +(tlZoom-0.2).toFixed(1));
     else tlZoom = 1;
+    store.set('ct_tlzoom', tlZoom);
     render();
   });
 
   // Avondshift loopt door na middernacht: tijden voor 06:00 tellen als volgende dag
   const wrapMin = t => (tlShift==='avond' && t < 6*60) ? t+1440 : t;
   const start = sh.s, end = sh.e;
-  const PXH = 150*tlZoom;
+  const PXH = 300*tlZoom;  // Uitgerekt zoals DISH zodat dranknotities leesbaar zijn
   const px = min => ((min-start)/60)*PXH;
   const totalW = px(end);
 
@@ -1869,9 +1878,9 @@ function renderMap(all){
   const sizer = document.getElementById('mapSizer');
   const canvas = document.getElementById('mapCanvas');
   const size = MAP_SIZE[curLoc] || {w:1000,h:700};
-  // Automatisch passend op de breedte (zoals DISH), verticaal scrollen mag
+  // Standaard op 50%, in- en uitzoomen met de knoppen blijft mogelijk
   if(!mapUserZoom){
-    mapZoom = Math.max(0.25, Math.min(1.5, +((wrap.clientWidth-6)/size.w).toFixed(2)));
+    mapZoom = 0.5;
     const lbl = document.getElementById('mZoomLbl');
     if(lbl) lbl.textContent = Math.round(mapZoom*100)+'%';
   }
