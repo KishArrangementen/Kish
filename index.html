@@ -49,6 +49,13 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
   #sideRail{display:flex;top:calc(60px + env(safe-area-inset-top));z-index:30}
   body{padding-left:54px}
   #topbar{margin-left:-54px;padding-left:14px}
+  /* Tijdlijn scrolt binnen zijn eigen vak, zodat de balk onderaan altijd zichtbaar is */
+  .tlScroll{max-height:calc(100vh - 235px);overflow:auto;scrollbar-width:thin;scrollbar-color:#3a4770 var(--panel2)}
+  .tlScroll::-webkit-scrollbar{height:13px;width:13px}
+  .tlScroll::-webkit-scrollbar-track{background:var(--panel2);border-radius:7px}
+  .tlScroll::-webkit-scrollbar-thumb{background:#3a4770;border-radius:7px;border:3px solid var(--panel2)}
+  .tlScroll::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+  .tlScroll::-webkit-scrollbar-corner{background:var(--panel2)}
 }
 
 /* Merk */
@@ -208,6 +215,9 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 .tbl.arr{background:#059669;border-color:#047252;color:#fff}
 .tbl.arr .chair{background:#047252}
 .tbl.arr small{color:#d9f7ec;background:none}
+.tbl.nm{background:#f87171;border-color:#dc2626;color:#fff}
+.tbl.nm .chair{background:#dc2626}
+.tbl.nm small{color:#ffe4e4;background:none}
 .tbl.verwacht{background:#3d55f0;border-color:#2439c9;color:#fff}
 .tbl.verwacht .chair{background:#2439c9}
 .tbl.verwacht small{color:#dbe2ff;background:none}
@@ -423,6 +433,7 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
 .tlBlock{position:absolute;top:4px;bottom:4px;background:var(--accent2);border-left:8px solid var(--accent);border-radius:6px;color:#1a0d05;display:flex;align-items:center;gap:7px;padding:0 8px;overflow:hidden;white-space:nowrap;font-size:13.5px;cursor:pointer}
 .tlBlock.in{background:#059669;border-left-color:#047252;color:#fff}
 .tlBlock.arr{background:#059669;border-left-color:#047252;color:#fff}
+.tlBlock.nm{background:#f87171;border-left-color:#dc2626;color:#fff}
 .tlBlock.verwacht{background:#3d55f0;border-left-color:#2439c9;color:#fff}
 .tlBlock.verwacht .tlNote{opacity:.9}
 .tlBlock b{font-size:15px}
@@ -2393,7 +2404,7 @@ function renderTafels(all){
         const dim = INACTIVE.has(r.status);
         const s = px(eff);
         const w = Math.max(56, (dur/60)*PXH - 4);
-        const kls = r.status==='in' ? 'in' : (r.status==='arr' ? 'arr' : 'verwacht');
+        const kls = r.status==='in' ? 'in' : (r.status==='arr' ? 'arr' : (r.status==='nm' ? 'nm' : 'verwacht'));
         blocks += `<div class="tlBlock ${kls}${dim?' no':''}${tlLock?'':' sleepbaar'}" data-rid="${r.id}" style="left:${s}px;width:${w}px;border-left-color:${st.c}" onclick="openFormById('${r.id}')">
           <b>${r.pax}</b><span class="tlNaam">${esc(r.naam)}</span>${combiTags(r) || `<span class="tlTag" style="background:${arrKleur(r.arr)}">${esc(r.arr)}</span>`}${isVerkocht(r)?'<span class="tlTag" style="background:#8b5cf6">Verkocht</span>':''}${r.notitie?`<span class="tlNote">${esc(r.notitie)}</span>`:''}${allergieTekst(r)?`<span class="tlTag" style="background:#e5304d">\u26a0 ${esc(allergieTekst(r))}</span>`:''}
         </div>`;
@@ -2608,7 +2619,7 @@ function renderMap(all){
       el.style.left = lay[t.nr].x+'%';
       el.style.top = lay[t.nr].y+'%';
       if(r){
-        el.classList.add(r.status==='in' ? 'in' : (r.status==='arr' ? 'arr' : 'verwacht'));
+        el.classList.add(r.status==='in' ? 'in' : (r.status==='arr' ? 'arr' : (r.status==='nm' ? 'nm' : 'verwacht')));
         el.innerHTML = `<span class="tnr2">${esc(t.nr)}</span><span class="tijdje">${esc(r.tijd)}-${minNaarTijd(tijdNaarMin(r.tijd)+(r.duur||90))}</span>`;
         const s = document.createElement('small');
         s.textContent = r.pax+' p. '+(r.naam.length>13 ? r.naam.slice(0,12)+'\u2026' : r.naam);
