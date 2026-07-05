@@ -2551,8 +2551,8 @@ function renderTafels(all){
         const s = px(eff);
         const w = Math.max(56, (dur/60)*PXH - 4);
         const kls = r.status==='in' ? 'in' : (r.status==='arr' ? 'arr' : (r.status==='nm' ? 'nm' : 'verwacht'));
-        const spanStijl = spanN > 1 ? `;height:calc(${spanN*100}% + ${spanN-1}px - 8px);bottom:auto;z-index:6` : '';
-        blocks += `<div class="tlBlock ${kls}${dim?' no':''}${tlLock?'':' sleepbaar'}" data-rid="${r.id}" style="left:${s}px;width:${w}px;border-left-color:${st.c}${spanStijl}" onclick="openFormById('${r.id}')">
+        const spanStijl = spanN > 1 ? `;bottom:auto;height:${spanN*47-9}px;z-index:6` : '';
+        blocks += `<div class="tlBlock ${kls}${dim?' no':''}${tlLock?'':' sleepbaar'}"${spanN>1?` data-span="${spanN}"`:''} data-rid="${r.id}" style="left:${s}px;width:${w}px;border-left-color:${st.c}${spanStijl}" onclick="openFormById('${r.id}')">
           <b>${r.pax}</b><span class="tlNaam">${esc(r.naam)}</span>${combiTags(r) || `<span class="tlTag" style="background:${arrKleur(r.arr)}">${esc(r.arr)}</span>`}${isVerkocht(r)?'<span class="tlTag" style="background:#8b5cf6">Verkocht</span>':''}${r.notitie?`<span class="tlNote">${esc(r.notitie)}</span>`:''}${allergieTekst(r)?`<span class="tlTag" style="background:#e5304d">\u26a0 ${esc(allergieTekst(r))}</span>`:''}
         </div>`;
       });
@@ -2596,6 +2596,20 @@ function renderTafels(all){
       if(vroegst !== null) nieuwSc.scrollLeft = Math.max(0, px(vroegst) - 30);
     }
     window._tlScrollKey = sleutel;
+
+    // Gespannen blokken exact op de gemeten rijhoogtes zetten (geen gaatjes op welk apparaat dan ook)
+    nieuwSc.querySelectorAll('.tlBlock[data-span]').forEach(b=>{
+      const n = +b.dataset.span;
+      const eerste = b.closest('.tlRow');
+      if(!eerste) return;
+      let laatste = eerste;
+      for(let i=1; i<n; i++){
+        const volg = laatste.nextElementSibling;
+        if(volg && volg.classList.contains('tlRow')) laatste = volg;
+      }
+      const h = laatste.getBoundingClientRect().bottom - eerste.getBoundingClientRect().top;
+      b.style.height = Math.max(38, Math.round(h) - 9) + 'px';
+    });
   }
 
   // Slepen: blok verticaal naar een andere tafelrij trekken
