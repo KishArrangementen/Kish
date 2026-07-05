@@ -439,6 +439,9 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
 /* Tijdlijn */
 .tlScroll{overflow-x:auto;margin:0;padding:0 0 8px;-webkit-overflow-scrolling:touch}
 .tlHead{display:flex;position:sticky;top:0;background:var(--bg);z-index:9;width:max-content;min-width:100%}
+@media (max-width:999px){
+  .tlHead{top:calc(56px + env(safe-area-inset-top))}
+}
 .tlHours{position:relative;height:34px;flex:0 0 auto}
 .tlHour{position:absolute;top:8px;font-size:13px;font-weight:700;color:var(--muted);transform:translateX(-50%)}
 .tlLoc{display:none}
@@ -2508,7 +2511,7 @@ function renderTafels(all){
   if(nowX >= 0) hoursHTML += `<div class="tlNowDot" style="left:${nowX}px"></div>`;
 
   let rows = '';
-  LOCS.forEach(loc=>{
+  (filt.zaal ? [filt.zaal] : LOCS).forEach(loc=>{
     const tafels = tafelsVoor(loc);
     if(!tafels.length) return;
     rows += `<div class="tlLocRow">${esc(loc)}</div>`;
@@ -2566,9 +2569,34 @@ function renderTafels(all){
     zonderHTML = '<div class="sectionH">Zonder tafel</div>' + zonder.map(r=>cardHTML(r, true)).join('');
   }
 
+  const oudSc = content.querySelector('.tlScroll');
+  const sleutel = curDate + '|' + tlShift;
+  const oudX = (oudSc && window._tlScrollKey === sleutel) ? oudSc.scrollLeft : null;
+  const oudY = (oudSc && window._tlScrollKey === sleutel) ? oudSc.scrollTop : null;
+
   content.innerHTML = rows
     ? `<div class="tlScroll"><div class="tlHead"><div class="tlLabel"></div><div class="tlHours" style="width:${totalW}px">${hoursHTML}</div></div>${rows}</div>${zonderHTML}`
     : '<div class="empty">Geen tafels gevonden.</div>';
+
+  const nieuwSc = content.querySelector('.tlScroll');
+  if(nieuwSc){
+    if(oudX !== null){
+      // Zelfde dag en shift: scrollpositie behouden
+      nieuwSc.scrollLeft = oudX;
+      nieuwSc.scrollTop = oudY;
+    } else {
+      // Vers geopend: meteen naar de eerste reservering springen (bijv. de PA van 14:00)
+      let vroegst = null;
+      all.forEach(r=>{
+        if(INACTIVE.has(r.status) || !r.tijd) return;
+        const m = wrapMin(tijdNaarMin(r.tijd));
+        if(m + (r.duur||90) <= start || m >= end) return;
+        if(vroegst === null || m < vroegst) vroegst = m;
+      });
+      if(vroegst !== null) nieuwSc.scrollLeft = Math.max(0, px(vroegst) - 30);
+    }
+    window._tlScrollKey = sleutel;
+  }
 
   // Slepen: blok verticaal naar een andere tafelrij trekken
   if(!tlLock) content.querySelectorAll('.tlBlock.sleepbaar').forEach(blok=>{
