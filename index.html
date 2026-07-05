@@ -583,7 +583,7 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
 </div>
 
 <div id="sheetWrap">
-  <div class="bg" onclick="closeSheet()"></div>
+  <div class="bg" onclick="sheetBgTik()"></div>
   <div id="sheet"></div>
 </div>
 
@@ -1359,6 +1359,24 @@ document.getElementById('btnWisPA').onclick = ()=>{
 /* ============ FORMULIER ============ */
 const sheetWrap = document.getElementById('sheetWrap'), sheet = document.getElementById('sheet');
 function closeSheet(){ sheetWrap.classList.remove('open'); }
+function sheetBgTik(){
+  const act = document.activeElement;
+  if(act && sheet.contains(act) && act.blur){ act.blur(); return; } // eerst het toetsenbord weg
+  closeSheet();
+}
+
+// iPad: als het toetsenbord opent, tilt het formulier zich erboven uit
+if(window.visualViewport){
+  const vvFix = ()=>{
+    if(!sheetWrap.classList.contains('open')) return;
+    const vv = window.visualViewport;
+    const inzet = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    sheet.style.bottom = inzet + 'px';
+    sheet.style.maxHeight = Math.min(window.innerHeight*0.88, vv.height - 12) + 'px';
+  };
+  window.visualViewport.addEventListener('resize', vvFix);
+  window.visualViewport.addEventListener('scroll', vvFix);
+}
 
 function minNaarTijd(min){
   min = ((min%1440)+1440)%1440;
