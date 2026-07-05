@@ -130,6 +130,31 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 #fabAdd{bottom:20px;background:var(--accent)}
 
 /* Minikalender datumveld */
+/* Vloeiende animaties, uitgeschakeld voor wie verminderde beweging heeft ingesteld */
+@media (prefers-reduced-motion: no-preference){
+  button{transition:background .15s ease,color .15s ease,transform .12s ease,box-shadow .15s ease,border-color .15s ease}
+  .fab{transition:transform .16s ease,box-shadow .2s ease}
+  .fab:active{transform:scale(.9)}
+  .paxBtn:active,.btn:active,.shBack:active{transform:scale(.96)}
+  .tlBlock{transition:background .18s ease,box-shadow .18s ease,opacity .18s ease}
+  .tlBlock:active{filter:brightness(1.1)}
+  .tbl{transition:background .22s ease,border-color .22s ease,box-shadow .22s ease}
+  .card{transition:background .15s ease}
+  .chip,.tlTag{transition:background .18s ease}
+  .stepper{transition:border-color .18s ease}
+  .stepper b{transition:color .18s ease}
+  .vraagBox,.aantalPop,.tafelPop{animation:kishPop .17s ease-out}
+  .mcalOv,.stOv,.scanOv{animation:kishFade .15s ease-out}
+  .instPage{animation:kishRise .2s ease-out}
+  .instCard{animation:kishRise .22s ease-out}
+  #toast{transition:opacity .2s ease,transform .2s ease}
+  .instRow{transition:background .14s ease}
+  #sideRail button,#drawer nav button{transition:background .15s ease,color .15s ease,border-color .15s ease}
+}
+@keyframes kishFade{from{opacity:0}to{opacity:1}}
+@keyframes kishPop{from{opacity:0;transform:scale(.95) translateY(6px)}to{opacity:1;transform:none}}
+@keyframes kishRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
 .instPage{position:fixed;inset:0;background:var(--bg);z-index:80;display:flex;flex-direction:column}
 .instTop{background:var(--accent);color:#fff;display:flex;align-items:center;gap:6px;padding:12px 14px;font-weight:800;font-size:17px;letter-spacing:.02em}
 .instTop button{color:#fff;font-size:24px;width:38px;height:38px;line-height:1;border-radius:10px}
@@ -215,6 +240,7 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 .tbl.arr{background:#059669;border-color:#047252;color:#fff}
 .tbl.arr .chair{background:#047252}
 .tbl.arr small{color:#d9f7ec;background:none}
+.tbl.samen{box-shadow:0 0 0 3px var(--bg), 0 0 0 5px #7ca6f5}
 .tbl.nm{background:#f87171;border-color:#dc2626;color:#fff}
 .tbl.nm .chair{background:#dc2626}
 .tbl.nm small{color:#ffe4e4;background:none}
@@ -2620,6 +2646,7 @@ function renderMap(all){
       el.style.top = lay[t.nr].y+'%';
       if(r){
         el.classList.add(r.status==='in' ? 'in' : (r.status==='arr' ? 'arr' : (r.status==='nm' ? 'nm' : 'verwacht')));
+        if(getTafels(r).length > 1) el.classList.add('samen');
         el.innerHTML = `<span class="tnr2">${esc(t.nr)}</span><span class="tijdje">${esc(r.tijd)}-${minNaarTijd(tijdNaarMin(r.tijd)+(r.duur||90))}</span>`;
         const s = document.createElement('small');
         s.textContent = r.pax+' p. '+(r.naam.length>13 ? r.naam.slice(0,12)+'\u2026' : r.naam);
