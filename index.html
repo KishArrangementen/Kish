@@ -2420,9 +2420,32 @@ function renderTafels(all){
     rows += `<div class="tlLocRow">${esc(loc)}</div>`;
     const byTafel = {};
     all.filter(r=>r.loc===loc).forEach(r=>{ getTafels(r).forEach(nr=>{ (byTafel[nr]=byTafel[nr]||[]).push(r); }); });
+
+    // Horen tafels bij elkaar (zelfde reservering, rijen onder elkaar)? Dan wordt het straks een blok
+    const rijIdx = {}; tafels.forEach((tf,i)=> rijIdx[tf.nr] = i);
+    const spanInfo = {};
+    all.filter(r=>r.loc===loc).forEach(r=>{
+      const nrs = getTafels(r).filter(nr=> rijIdx[nr] !== undefined).sort((a,b)=>rijIdx[a]-rijIdx[b]);
+      if(nrs.length < 2) return;
+      let run = [nrs[0]];
+      const runs = [];
+      for(let i=1; i<nrs.length; i++){
+        if(rijIdx[nrs[i]] === rijIdx[run[run.length-1]] + 1) run.push(nrs[i]);
+        else { runs.push(run); run = [nrs[i]]; }
+      }
+      runs.push(run);
+      runs.forEach(rn=>{
+        spanInfo[r.id+':'+rn[0]] = { span: rn.length };
+        rn.slice(1).forEach(nr=> spanInfo[r.id+':'+nr] = { skip: true });
+      });
+    });
+
     tafels.forEach(t=>{
       let blocks = '';
       (byTafel[t.nr]||[]).forEach(r=>{
+        const si = spanInfo[r.id+':'+t.nr];
+        if(si && si.skip) return; // deze rij wordt gedekt door het gespannen blok erboven
+        const spanN = (si && si.span > 1) ? si.span : 1;
         const eff = wrapMin(tijdNaarMin(r.tijd));
         const dur = r.duur||90;
         if(eff+dur <= start || eff >= end) return; // buiten deze shift
@@ -2431,7 +2454,8 @@ function renderTafels(all){
         const s = px(eff);
         const w = Math.max(56, (dur/60)*PXH - 4);
         const kls = r.status==='in' ? 'in' : (r.status==='arr' ? 'arr' : (r.status==='nm' ? 'nm' : 'verwacht'));
-        blocks += `<div class="tlBlock ${kls}${dim?' no':''}${tlLock?'':' sleepbaar'}" data-rid="${r.id}" style="left:${s}px;width:${w}px;border-left-color:${st.c}" onclick="openFormById('${r.id}')">
+        const spanStijl = spanN > 1 ? `;height:${spanN*47-9}px;bottom:auto;z-index:6` : '';
+        blocks += `<div class="tlBlock ${kls}${dim?' no':''}${tlLock?'':' sleepbaar'}" data-rid="${r.id}" style="left:${s}px;width:${w}px;border-left-color:${st.c}${spanStijl}" onclick="openFormById('${r.id}')">
           <b>${r.pax}</b><span class="tlNaam">${esc(r.naam)}</span>${combiTags(r) || `<span class="tlTag" style="background:${arrKleur(r.arr)}">${esc(r.arr)}</span>`}${isVerkocht(r)?'<span class="tlTag" style="background:#8b5cf6">Verkocht</span>':''}${r.notitie?`<span class="tlNote">${esc(r.notitie)}</span>`:''}${allergieTekst(r)?`<span class="tlTag" style="background:#e5304d">\u26a0 ${esc(allergieTekst(r))}</span>`:''}
         </div>`;
       });
