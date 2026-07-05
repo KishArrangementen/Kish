@@ -495,6 +495,8 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
 .setCard p{font-size:12px;color:var(--muted)}
 
 .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);padding:11px 18px;border-radius:10px;font-size:14px;font-weight:600;z-index:90;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.toast.groen{top:calc(14px + env(safe-area-inset-top));bottom:auto;background:#0ea371;border-color:#0b8a60;color:#fff;display:flex;align-items:center;gap:10px;font-size:14.5px;font-weight:700;padding:12px 22px;border-radius:12px;animation:kishRise .2s ease-out}
+.toast.groen svg{flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -1668,6 +1670,7 @@ function openForm(existing, walkin){
       if(idx>=0) list[idx] = nieuw; else list.push(nieuw);
       setRes(list); closeSheet();
       syncSetRes(curDate, nieuw);
+      toast('Reservering opgeslagen', 'groen');
     } else {
       // Verplaatst naar een andere dag
       if(idx>=0){ list.splice(idx,1); store.set(dayKey(), list); syncDelRes(curDate, nieuw.id); }
@@ -2833,9 +2836,14 @@ function makeDraggable(el, tafel, canvas, lay){
 /* --- Print --- */
 document.getElementById('btnPrint').onclick = ()=>window.print();
 
-function toast(msg){
+function toast(msg, soort){
   const t = document.createElement('div');
-  t.className = 'toast'; t.textContent = msg;
+  t.className = 'toast' + (soort==='groen' ? ' groen' : '');
+  if(soort==='groen'){
+    t.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 10 18.5 20 6"/></svg>' + esc(msg);
+  } else {
+    t.textContent = msg;
+  }
   document.body.appendChild(t);
   setTimeout(()=>t.remove(), 2200);
 }
