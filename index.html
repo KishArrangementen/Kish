@@ -2817,8 +2817,7 @@ function cardHTML(r, metTijd){
     <div class="cmid">
       <div>${Object.entries((r.combi)||{}).filter(([,n])=>n>0).map(([k,n])=>`<span class="chip" style="background:${arrKleur(k)}">${n}x ${esc(k)}</span>`).join('') || `<span class="chip" style="background:${arrKleur(r.arr)}">${esc(r.arr)}</span>`}${r.walkin?'<span class="chip" style="background:#5ad0a5">Walk-in</span>':''}${isVerkocht(r)?'<span class="chip" style="background:#8b5cf6">Verkocht</span>':''}</div>
       ${(metTijd||r.notitie)?`<div class="cnote">${metTijd?esc(r.tijd):''}${metTijd&&r.notitie?' &middot; ':''}${r.notitie?esc(r.notitie):''}</div>`:''}
-      ${allergieTekst(r)?`<div class="cnote" style="color:#e5304d">\u26a0 ${esc(allergieTekst(r))}</div>`:''}
-      ${bijzTekst(r)?`<div class="cnote" style="color:#4d8dff">\u267F ${esc(bijzTekst(r))}</div>`:''}
+      ${(allergieTekst(r)||bijzTekst(r))?`<div class="cnote">${allergieTekst(r)?`<span style="color:#e5304d">\u26a0 ${esc(allergieTekst(r))}</span>`:''}${allergieTekst(r)&&bijzTekst(r)?' &middot; ':''}${bijzTekst(r)?`<span style="color:#4d8dff">\u267F ${esc(bijzTekst(r))}</span>`:''}</div>`:''}
     </div>
     <div class="ctafel"${dayConflicts.has(r.id)?' style="color:#e5304d"':''}>${tfs.length?tfs.map(esc).join(', '):'-'}<small>${esc(r.loc)}</small></div>
     <button class="stBtn" style="background:${st.c}" onclick="openStatusMenu('${r.id}',event)">${st.naam.toUpperCase()}</button>
