@@ -1535,7 +1535,10 @@ document.getElementById('btnWisPA').onclick = ()=>{
 
 /* ============ FORMULIER ============ */
 const sheetWrap = document.getElementById('sheetWrap'), sheet = document.getElementById('sheet');
-function closeSheet(){ sheetWrap.classList.remove('open'); }
+function closeSheet(){
+  sheetWrap.classList.remove('open');
+  document.querySelectorAll('.tbl.samen').forEach(x=>x.classList.remove('samen'));
+}
 function sheetBgTik(){
   const act = document.activeElement;
   if(act && sheet.contains(act) && act.blur){ act.blur(); return; } // eerst het toetsenbord weg
@@ -3046,7 +3049,7 @@ function renderMap(all){
       el.style.top = lay[t.nr].y+'%';
       if(r){
         el.classList.add(r.status==='in' ? 'in' : (r.status==='arr' ? 'arr' : (r.status==='nm' ? 'nm' : 'verwacht')));
-        if(getTafels(r).length > 1) el.classList.add('samen');
+        el.dataset.rid = r.id;
         el.innerHTML = `<span class="tnr2">${esc(t.nr)}</span><span class="tijdje">${esc(r.tijd)}-${minNaarTijd(tijdNaarMin(r.tijd)+(r.duur||90))}</span>`;
         const s = document.createElement('small');
         s.textContent = r.pax+' p. '+(r.naam.length>13 ? r.naam.slice(0,12)+'\u2026' : r.naam);
@@ -3060,8 +3063,15 @@ function renderMap(all){
         makeDraggable(el, t.nr, canvas, lay);
       } else {
         el.onclick = ()=>{
-          if(r) openForm(r,false);
-          else nieuwOpTafel(curLoc, t.nr);
+          // Vorige selectie weghalen, dan de aangetikte tafel(s) markeren zoals DISH
+          document.querySelectorAll('.tbl.samen').forEach(x=>x.classList.remove('samen'));
+          if(r){
+            document.querySelectorAll('.tbl[data-rid="'+r.id+'"]').forEach(x=>x.classList.add('samen'));
+            openForm(r,false);
+          } else {
+            el.classList.add('samen');
+            nieuwOpTafel(curLoc, t.nr);
+          }
         };
       }
       canvas.appendChild(el);
