@@ -387,9 +387,9 @@ body.themaHu #sideRail button.on svg,body.themaHu #sideRail button.on{color:#6dc
 .calDay .d{position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--blue)}
 
 /* Drawer */
-#scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;opacity:0;pointer-events:none;transition:opacity .2s}
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;opacity:0;pointer-events:none;transition:opacity .26s ease}
 #scrim.open{opacity:1;pointer-events:auto}
-#drawer{position:fixed;top:0;left:0;bottom:0;width:78%;max-width:320px;background:var(--panel);z-index:60;transform:translateX(-102%);transition:transform .22s;display:flex;flex-direction:column;border-right:1px solid var(--line)}
+#drawer{position:fixed;top:0;left:0;bottom:0;width:78%;max-width:320px;background:var(--panel);z-index:60;transform:translateX(-102%);transition:transform .3s cubic-bezier(.22,.9,.28,1);display:flex;flex-direction:column;border-right:1px solid var(--line)}
 #drawer.open{transform:none}
 #drawer .head{padding:22px 20px 16px;border-bottom:1px solid var(--line)}
 #drawer .head .logo{font-size:21px;font-weight:900;letter-spacing:.12em}
@@ -406,9 +406,15 @@ body.themaHu #sideRail button.on svg,body.themaHu #sideRail button.on{color:#6dc
 #drawer nav hr{border:none;border-top:1px solid var(--line);margin:6px 0}
 
 /* Sheet (formulier) */
-#sheetWrap{position:fixed;inset:0;z-index:70;display:none}
-#sheetWrap.open{display:block}
-#sheetWrap .bg{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+#sheetWrap{position:fixed;inset:0;z-index:70;visibility:hidden;pointer-events:none;transition:visibility 0s .3s}
+#sheetWrap.open{visibility:visible;pointer-events:auto;transition:visibility 0s}
+#sheetWrap .bg{position:absolute;inset:0;background:rgba(0,0,0,.6);opacity:0;transition:opacity .26s ease}
+#sheetWrap.open .bg{opacity:1}
+#sheetWrap #sheet{transform:translateY(103%);transition:transform .32s cubic-bezier(.22,.9,.28,1)}
+#sheetWrap.open #sheet{transform:none}
+@media (min-width:700px){
+  #sheetWrap #sheet{transform:translateX(103%)}
+}
 #sheet{position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-radius:18px 18px 0 0;padding:18px 20px 30px;max-height:88vh;overflow-y:auto}
 @media (min-width:700px){
   #sheet{left:auto;top:0;right:0;bottom:0;width:420px;max-height:none;border-radius:0;border-left:1px solid var(--line)}
