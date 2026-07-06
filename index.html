@@ -1636,8 +1636,26 @@ function slimmeStartTijd(){
   return '19:30';
 }
 
+// Zelfde duur aanhouden als de PA die al op deze begintijd staat (standaard 1,5 uur)
+function slimmeDuur(tijd){
+  const zelfde = getRes().filter(r => r.tijd === tijd && r.duur && !INACTIVE.has(r.status));
+  if(!zelfde.length) return 90;
+  const telling = {};
+  zelfde.forEach(r => { telling[r.duur] = (telling[r.duur]||0) + 1; });
+  return +Object.entries(telling).sort((a,b) => b[1]-a[1])[0][0];
+}
+
+function nieuweResDefaults(extra){
+  const t = slimmeStartTijd();
+  return Object.assign({
+    naam:'', pax:2, tijd:t, duur:slimmeDuur(t),
+    loc: curLoc==='__alles' ? 'Theaterrestaurant' : curLoc,
+    tafels:[], arr:'Normaal', notitie:'', status:'res', walkin:false
+  }, extra || {});
+}
+
 function openForm(existing, walkin){
-  const r = existing || { naam: walkin?'Walk-in':'', pax:2, tijd:slimmeStartTijd(), duur:90, loc:curLoc==='__alles'?'Theaterrestaurant':curLoc, tafels:[], arr:'Normaal', notitie:'', status: walkin?'in':'res', walkin:!!walkin };
+  const r = existing || nieuweResDefaults({ naam: walkin?'Walk-in':'', status: walkin?'in':'res', walkin: !!walkin });
   const eind = minNaarTijd(tijdNaarMin(r.tijd)+(r.duur||90));
   let selTafels = new Set(getTafels(r));
   const paxBtn = n=>`<button class="paxBtn ${r.pax===n?'on':''}" data-p="${n}">${n}</button>`;
@@ -2898,7 +2916,7 @@ function gridHTML(start,end,px,nowX){
   return g;
 }
 window.nieuwOpTafel = (loc, nr)=>{
-  openForm({ naam:'', pax:2, tijd:slimmeStartTijd(), duur:90, loc, tafels:[nr], arr:'Normaal', notitie:'', status:'res', walkin:false }, false);
+  openForm(nieuweResDefaults({ loc, tafels:[nr] }), false);
 };
 
 /* --- Alfabetisch --- */
