@@ -1093,11 +1093,15 @@ function abonneerDatum(){
   const vasteDatum = curDate;
   syncResRef = db.ref(syncPad + '/res/' + vasteDatum);
   syncResRef.on('value', snap=>{
+    window._syncKlaarVoor = window._syncKlaarVoor || {};
+    window._syncKlaarVoor[vasteDatum] = true;
     store.set('ct_res_'+vasteDatum, Object.values(snap.val() || {}));
     if(vasteDatum === curDate && !sheetWrap.classList.contains('open')) render();
   });
 }
 function syncSetRes(datum, r){ if(db && r && r.id) db.ref(syncPad+'/res/'+datum+'/'+r.id).set(r); }
+// Veiliger voor snelle acties: alleen de gewijzigde velden syncen zodat verouderde lokale data nooit iets anders overschrijft
+function syncUpdateRes(datum, id, velden){ if(db && id) db.ref(syncPad+'/res/'+datum+'/'+id).update(velden).catch(()=>{}); }
 function syncDelRes(datum, id){ if(db && id) db.ref(syncPad+'/res/'+datum+'/'+id).remove(); }
 function syncLayout(){ if(db) db.ref(syncPad+'/layout').set(layout); }
 function syncTafels(){ if(db) db.ref(syncPad+'/tafels').set(store.get('ct_tafels', {})); }
@@ -1424,7 +1428,7 @@ function toonScanResultaat(ov, tekst){
       if(rl){
         rl.orders = [...new Set([...(rl.orders||[]), ...nieuwNrs.map(String)])];
         rl.bewerkt = Date.now();
-        syncSetRes(curDate, rl);
+        syncUpdateRes(curDate, rl.id, { orders: rl.orders, bewerkt: rl.bewerkt });
         setRes(list);
       }
     }
@@ -1457,7 +1461,7 @@ window.scanAanTafel = (id, btn)=>{
   const list = getRes();
   const r = list.find(x=>x.id===id); if(!r) return;
   r.status = 'in'; r.bewerkt = Date.now();
-  syncSetRes(curDate, r);
+  syncUpdateRes(curDate, r.id, { status: 'in', bewerkt: r.bewerkt });
   setRes(list);
   if(btn) btn.textContent = '\u2713 Zit aan tafel';
 };
@@ -1496,7 +1500,7 @@ window.koppelAan = (id)=>{
   if(!nrs.length){ toast('Geen bruikbare code'); return; }
   r.orders = [...new Set([...(r.orders||[]), ...nrs])];
   r.bewerkt = Date.now();
-  syncSetRes(curDate, r);
+  syncUpdateRes(curDate, r.id, { orders: r.orders, bewerkt: r.bewerkt });
   setRes(list);
   toast('Code gekoppeld aan '+r.naam);
   const ov = document.querySelector('.scanOv');
@@ -1515,6 +1519,10 @@ window.ctImport = function(data){
     if(!lijst.length){ toast('Geen reserveringen gevonden'); return; }
     const key = 'ct_res_'+datum;
     const bestaand = store.get(key, []);
+    // Reservekopie van de huidige stand, zodat een import altijd teruggedraaid kan worden
+    if(Array.isArray(bestaand) && bestaand.length){
+      store.set('ct_backup_'+datum, { t: Date.now(), lijst: bestaand });
+    }
     const arrMap = {'Koffie':'Koffie arrangement', 'Naborrel':'Na Borrel', 'NaBorrel':'Na Borrel'};
     let nieuw = 0, bijgewerkt = 0;
     lijst.forEach(x=>{
@@ -1550,9 +1558,18 @@ window.ctImport = function(data){
       const sleutel = (r.naam+'|'+r.tijd+'|'+r.loc).toLowerCase();
       const i = bestaand.findIndex(b => b.bron==='pa' && (b.naam+'|'+b.tijd+'|'+b.loc).toLowerCase() === sleutel);
       if(i >= 0){
-        r.id = bestaand[i].id;
-        r.aangemaakt = bestaand[i].aangemaakt || r.aangemaakt;
-        r.status = bestaand[i].status;  // handmatig gezette status behouden
+        // Herimport mag het handwerk van de vloer NOOIT overschrijven
+        const oudR = bestaand[i];
+        r.id = oudR.id;
+        r.aangemaakt = oudR.aangemaakt || r.aangemaakt;
+        r.status = oudR.status;                                          // status behouden
+        if(oudR.notitie && String(oudR.notitie).trim()) r.notitie = oudR.notitie;  // drankjes behouden
+        r.orders = [...new Set([...(oudR.orders||[]).map(String), ...r.orders])];  // gescande kaartnummers behouden
+        if(oudR.allergie && Object.keys(oudR.allergie).length) r.allergie = oudR.allergie;
+        if(oudR.bijz && Object.keys(oudR.bijz).length) r.bijz = oudR.bijz;
+        if(oudR.verkocht) r.verkocht = true;
+        if(oudR.combi && Object.keys(oudR.combi).length) r.combi = oudR.combi;
+        if(oudR.tafels && oudR.tafels.length){ r.tafels = oudR.tafels; r.tafel = oudR.tafels[0]; } // verplaatste tafels behouden
         bestaand[i] = r; bijgewerkt++;
       } else {
         r.id = Date.now()+''+Math.floor(Math.random()*99999);
@@ -2073,7 +2090,7 @@ function openForm(existing, walkin){
   if(annul) annul.onclick = ()=>{
     const list = getRes();
     const rr = list.find(x=>x.id===existing.id);
-    if(rr){ rr.status = 'ann'; rr.bewerkt = Date.now(); syncSetRes(curDate, rr); }
+    if(rr){ rr.status = 'ann'; rr.bewerkt = Date.now(); syncUpdateRes(curDate, rr.id, { status:'ann', bewerkt: rr.bewerkt }); }
     setRes(list); closeSheet();
     toast('Reservering geannuleerd');
   };
@@ -2103,7 +2120,7 @@ window.openStatusMenu = (id, ev)=>{
     bt.onclick = ()=>{
       const list = getRes();
       const rr = list.find(x=>x.id===id);
-      if(rr){ rr.status = bt.dataset.k; rr.bewerkt = Date.now(); syncSetRes(curDate, rr); }
+      if(rr){ rr.status = bt.dataset.k; rr.bewerkt = Date.now(); syncUpdateRes(curDate, rr.id, { status: rr.status, bewerkt: rr.bewerkt }); }
       ov.remove();
       setRes(list);
     };
@@ -2247,11 +2264,13 @@ function toonInstellingen(){
     <div class="instRow" id="rZalen"><b style="flex:1">Zalen &amp; Tafels</b><span class="instChev">&#8250;</span></div>
     <div class="instRow" id="rManagers"><b style="flex:1">Managers</b><span class="instChev">&#8250;</span></div>
     <div class="instRow" id="rVerkocht"><b style="flex:1">Verkocht vandaag</b><span class="instChev">&#8250;</span></div>
-    <div class="instRow" id="rArchief"><b style="flex:1">Dagarchief</b><span class="instChev">&#8250;</span></div>`);
+    <div class="instRow" id="rArchief"><b style="flex:1">Dagarchief</b><span class="instChev">&#8250;</span></div>
+    <div class="instRow" id="rBackup"><b style="flex:1">Reservekopie</b><span class="instChev">&#8250;</span></div>`);
   pg.querySelector('#rZalen').onclick = instZalen;
   pg.querySelector('#rManagers').onclick = instManagers;
   pg.querySelector('#rVerkocht').onclick = instVerkocht;
   pg.querySelector('#rArchief').onclick = instArchief;
+  pg.querySelector('#rBackup').onclick = instBackup;
 }
 
 function instZalen(){
@@ -2418,6 +2437,102 @@ function instArchief(){
         <span style="width:88px">${d.verkocht ? `<span class="chip" style="background:#8b5cf6">${d.verkocht} (${d.verkochtPax}p)</span>` : '-'}</span>
         <span style="width:74px">${d.noshow ? `<span class="chip" style="background:#991b1b">${d.noshow}</span>` : '-'}</span>
       </div>`).join('') : '<div class="instSub" style="padding:10px 0">Nog geen dagen in het archief.</div>'}`);
+}
+
+function instBackup(){
+  const kopies = [];
+  for(let i = 0; i < localStorage.length; i++){
+    const k = localStorage.key(i);
+    if(!k || !k.startsWith('ct_backup_')) continue;
+    const datum = k.slice(10);
+    const v = store.get(k, null);
+    if(v && Array.isArray(v.lijst)) kopies.push({ datum, t: v.t, aantal: v.lijst.length });
+  }
+  kopies.sort((a,b) => b.datum.localeCompare(a.datum));
+
+  const pg = instPagina([{n:'Instellingen', ga:toonInstellingen},{n:'Reservekopie', ga:instBackup}], `
+    <div class="instH">Reservekopie</div>
+    <div class="instSub">Kish bewaart automatisch elk uur een gedeelde kopie van vandaag, plus een kopie voor elke PA-import. Terugzetten herstelt drankjes, statussen en tafels op alle apparaten.</div>
+    <div style="display:flex;gap:8px;margin:4px 0 14px">
+      <button class="btn ghost" id="bkDownload">Download vandaag als bestand</button>
+      <label class="btn ghost" style="cursor:pointer">Bestand terugzetten<input type="file" id="bkUpload" accept=".json" style="display:none"></label>
+    </div>
+    <div class="instKopRij"><span style="flex:1">Automatische kopie&euml;n van vandaag (gedeeld)</span></div>
+    <div id="bkAuto"><div class="instSub" style="padding:8px 0">Laden...</div></div>
+    <div class="instKopRij" style="margin-top:10px"><span style="flex:1">Kopie&euml;n van v&oacute;&oacute;r een import (dit apparaat)</span></div>
+    ${kopies.length ? kopies.map(k=>`
+      <div class="instRow" style="cursor:default">
+        <b style="flex:1">${esc(fmtDate(k.datum))}</b>
+        <span style="color:var(--muted);font-size:12.5px">${k.aantal} res. &middot; ${new Date(k.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}</span>
+        <button class="btn primary" data-lokaal="${esc(k.datum)}">Terugzetten</button>
+      </div>`).join('') : '<div class="instSub" style="padding:8px 0">Nog geen import-kopie op dit apparaat.</div>'}`);
+
+  const zetTerug = (datum, lijst, tijdTekst)=>{
+    vraag('De stand van <b>'+esc(fmtDate(datum))+'</b> van '+tijdTekst+' terugzetten?<br><small style="color:var(--muted)">De huidige stand wordt overschreven, ook op de andere apparaten.</small>', ()=>{
+      store.set('ct_res_' + datum, lijst);
+      if(db){
+        db.ref(syncPad + '/res/' + datum).set(null).then(()=>{ lijst.forEach(r => syncSetRes(datum, r)); });
+      }
+      if(curDate === datum) render();
+      toast('Reservekopie teruggezet', 'groen');
+    });
+  };
+
+  pg.querySelectorAll('button[data-lokaal]').forEach(bt=>{
+    bt.onclick = ()=>{
+      const datum = bt.dataset.lokaal;
+      const v = store.get('ct_backup_' + datum, null);
+      if(!v || !Array.isArray(v.lijst)){ toast('Reservekopie niet gevonden'); return; }
+      zetTerug(datum, v.lijst, new Date(v.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}));
+    };
+  });
+
+  // Gedeelde uurkopieen van vandaag ophalen uit de sync
+  const auto = pg.querySelector('#bkAuto');
+  if(typeof db !== 'undefined' && db){
+    db.ref(syncPad + '/backup/' + todayStr()).once('value').then(sn=>{
+      const v = sn.val();
+      if(!v){ auto.innerHTML = '<div class="instSub" style="padding:8px 0">Nog geen automatische kopie vandaag.</div>'; return; }
+      const slots = Object.entries(v).sort((a,b)=> b[0].localeCompare(a[0]));
+      auto.innerHTML = slots.map(([uur, d])=>`
+        <div class="instRow" style="cursor:default">
+          <b style="flex:1">${esc(uur)}:00 uur</b>
+          <span style="color:var(--muted);font-size:12.5px">${(d.lijst||[]).length} res. &middot; ${new Date(d.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}</span>
+          <button class="btn primary" data-uur="${esc(uur)}">Terugzetten</button>
+        </div>`).join('');
+      auto.querySelectorAll('button[data-uur]').forEach(bt=>{
+        bt.onclick = ()=>{
+          const d = v[bt.dataset.uur];
+          if(d && Array.isArray(d.lijst)) zetTerug(todayStr(), d.lijst, bt.dataset.uur + ':00 uur');
+        };
+      });
+    }).catch(()=>{ auto.innerHTML = '<div class="instSub" style="padding:8px 0">Kopie&euml;n konden niet geladen worden.</div>'; });
+  } else {
+    auto.innerHTML = '<div class="instSub" style="padding:8px 0">Geen verbinding met de sync.</div>';
+  }
+
+  // Download en bestand-herstel
+  pg.querySelector('#bkDownload').onclick = ()=>{
+    const datum = curDate;
+    const lijst = store.get('ct_res_' + datum, []);
+    const blob = new Blob([JSON.stringify({ datum, lijst }, null, 1)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'kish-' + datum + '.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  pg.querySelector('#bkUpload').onchange = (e)=>{
+    const f = e.target.files[0];
+    if(!f) return;
+    f.text().then(txt=>{
+      try{
+        const d = JSON.parse(txt);
+        if(!d.datum || !Array.isArray(d.lijst)) throw new Error('formaat');
+        zetTerug(d.datum, d.lijst, 'het bestand');
+      }catch(err){ toast('Bestand niet herkend'); }
+    });
+  };
 }
 
 function instManagers(){
@@ -2823,7 +2938,28 @@ function cardHTML(r, metTijd){
     <button class="stBtn" style="background:${st.c}" onclick="openStatusMenu('${r.id}',event)">${st.naam.toUpperCase()}</button>
   </div>`;
 }
-window.openFormById = (id)=>{ if(Date.now() - (window._sleepklik||0) < 400) return; const r = getRes().find(x=>x.id===id); if(r) openForm(r,false); };
+window.openFormById = (id)=>{
+  if(Date.now() - (window._sleepklik||0) < 400) return;
+  const r = getRes().find(x=>x.id===id);
+  if(!r) return;
+  openForm(r, false);
+  // Verse versie ophalen: had een collega dit record net bijgewerkt, dan verversen we het formulier
+  if(typeof db !== 'undefined' && db){
+    db.ref(syncPad + '/res/' + curDate + '/' + id).once('value').then(sn=>{
+      const vers = sn.val();
+      if(!vers || !sheetWrap.classList.contains('open')) return;
+      if((vers.bewerkt||0) > (r.bewerkt||0)){
+        const save = sheet.querySelector('#fSave');
+        const onaangeraakt = save && !save.classList.contains('actief');
+        // Lokale lijst sowieso bijwerken
+        const lijst = getRes();
+        const i = lijst.findIndex(x=>x.id===id);
+        if(i>=0){ lijst[i] = vers; store.set(dayKey(), lijst); }
+        if(onaangeraakt) openForm(vers, false); // formulier opnieuw met de actuele gegevens
+      }
+    }).catch(()=>{});
+  }
+};
 
 function render(){
   const dlt = fmtDate(curDate);
@@ -3073,7 +3209,7 @@ function renderTafels(all){
         r2.tafels = [nieuwNr];
         r2.tafel = nieuwNr;
         r2.bewerkt = Date.now();
-        syncSetRes(curDate, r2);
+        syncUpdateRes(curDate, r2.id, { loc: r2.loc, tafels: r2.tafels, tafel: r2.tafel, bewerkt: r2.bewerkt });
         setRes(list);
         toast(esc(r2.naam)+' verplaatst naar tafel '+nieuwNr);
       };
@@ -3394,14 +3530,33 @@ function toast(msg, soort){
     for(let i = 0; i < localStorage.length; i++){
       const k = localStorage.key(i);
       if(k && k.startsWith('ct_res_') && k.slice(7) < grens) weg.push(k);
+      if(k && k.startsWith('ct_backup_') && k.slice(10) < new Date(Date.now() - 14*24*3600*1000).toISOString().slice(0,10)) weg.push(k);
+      if(k && k.startsWith('ct_snap_') && k.slice(8, 18) < grens) weg.push(k);
     }
     weg.forEach(k=>{
-      const datum = k.slice(7);
       localStorage.removeItem(k);
-      if(typeof db !== 'undefined' && db) db.ref(syncPad + '/res/' + datum).remove().catch(()=>{});
+      if(k.startsWith('ct_res_') && typeof db !== 'undefined' && db){
+        db.ref(syncPad + '/res/' + k.slice(7)).remove().catch(()=>{});
+        db.ref(syncPad + '/backup/' + k.slice(7)).remove().catch(()=>{});
+      }
     });
   }catch(e){}
 })();
+
+// Elk uur automatisch een gedeelde reservekopie in de sync, terug te zetten vanaf elk apparaat
+function maakUurSnapshot(){
+  if(typeof db === 'undefined' || !db) return;
+  const datum = todayStr();
+  const lijst = store.get('ct_res_' + datum, []);
+  if(!Array.isArray(lijst) || !lijst.length) return;
+  const uur = String(new Date().getHours()).padStart(2, '0');
+  const guard = 'ct_snap_' + datum + '_' + uur;
+  if(localStorage.getItem(guard)) return; // dit uur al gedaan vanaf dit apparaat
+  localStorage.setItem(guard, '1');
+  db.ref(syncPad + '/backup/' + datum + '/' + uur).set({ t: Date.now(), lijst }).catch(()=>{});
+}
+setInterval(maakUurSnapshot, 5*60000);
+setTimeout(maakUurSnapshot, 8000);
 
 // Kwartier na showstart: gasten die nog op Verwacht staan automatisch op Niet gemeld
 function autoNietGemeld(){
@@ -3412,6 +3567,9 @@ function autoNietGemeld(){
   const nu = new Date();
   const nuMin = nu.getHours()*60 + nu.getMinutes();
   let gewijzigd = false;
+  // Veiligheid: alleen draaien als dit apparaat de actuele stand al binnen heeft,
+  // anders kan een net geopend apparaat met verouderde data de sync overschrijven
+  if(typeof db !== 'undefined' && db && !(window._syncKlaarVoor && window._syncKlaarVoor[vandaag])) return;
   lijst.forEach(r=>{
     if(r.status !== 'res' || r.autoNm || !r.tijd) return;
     if(nuMin >= tijdNaarMin(r.tijd) + 15){
@@ -3419,7 +3577,10 @@ function autoNietGemeld(){
       r.autoNm = true;   // eenmalig: zet een medewerker hem terug op Verwacht, dan blijft dat zo
       r.bewerkt = Date.now();
       gewijzigd = true;
-      if(typeof db !== 'undefined' && db) syncSetRes(vandaag, r);
+      // Alleen de statusvelden syncen, nooit het hele record: notities blijven zo altijd staan
+      if(typeof db !== 'undefined' && db && r.id){
+        db.ref(syncPad + '/res/' + vandaag + '/' + r.id).update({ status:'nm', autoNm:true, bewerkt:r.bewerkt }).catch(()=>{});
+      }
     }
   });
   if(gewijzigd){
