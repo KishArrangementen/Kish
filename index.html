@@ -171,6 +171,15 @@ body.themaHu #brand::after{content:' \1F1ED\1F1FA'}
 body.themaHu #sideRail button.on{border-left-color:#477050}
 body.themaHu #sideRail button.on svg,body.themaHu #sideRail button.on{color:#6dc493}
 
+#loginOv{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.loginBox{width:min(360px,92vw);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px 24px;text-align:center}
+.loginBox .loginLogo{width:56px;height:56px;border-radius:14px;background:var(--accent);color:#fff;font-size:30px;font-weight:900;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.loginBox h2{font-size:19px;margin-bottom:6px}
+.loginBox p{color:var(--muted);font-size:13px;margin-bottom:18px}
+.loginBox label{display:block;text-align:left;font-size:11.5px;color:var(--muted);margin:12px 0 5px;font-weight:700}
+.loginBox input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:11px 12px;font-size:15px;color:var(--txt)}
+.loginBox #lgFout{color:#f87171;font-size:12.5px;min-height:18px;margin-top:10px;font-weight:700}
+.loginBox button{margin-top:8px}
 .instPage{position:fixed;inset:0;background:var(--bg);z-index:80;display:flex;flex-direction:column}
 .instTop{background:var(--accent);color:#fff;display:flex;align-items:center;gap:6px;padding:12px 14px;font-weight:800;font-size:17px;letter-spacing:.02em}
 .instTop button{color:#fff;font-size:24px;width:38px;height:38px;line-height:1;border-radius:10px}
@@ -1041,6 +1050,45 @@ const SYNC_STANDAARD = {
   sleutel: "circustheater"
 };
 
+// Inlogscherm: een keer per apparaat, daarna blijft het apparaat aangemeld
+function toonLogin(){
+  if(document.getElementById('loginOv')) return;
+  const ov = document.createElement('div');
+  ov.id = 'loginOv';
+  ov.innerHTML = `
+    <div class="loginBox">
+      <div class="loginLogo">K</div>
+      <h2>Inloggen bij Kish</h2>
+      <p>Dit apparaat is nog niet aangemeld. Log eenmalig in, daarna blijft dit apparaat toegang houden.</p>
+      <label>E-mail</label>
+      <input id="lgMail" type="email" autocomplete="username" inputmode="email">
+      <label>Wachtwoord</label>
+      <input id="lgWw" type="password" autocomplete="current-password">
+      <div id="lgFout"></div>
+      <button class="btn primary wide" id="lgOk">Inloggen</button>
+    </div>`;
+  document.body.appendChild(ov);
+  const doeLogin = ()=>{
+    const mail = ov.querySelector('#lgMail').value.trim();
+    const ww = ov.querySelector('#lgWw').value;
+    const fout = ov.querySelector('#lgFout');
+    if(!mail || !ww){ fout.textContent = 'Vul e-mail en wachtwoord in'; return; }
+    fout.textContent = '';
+    ov.querySelector('#lgOk').textContent = 'Bezig...';
+    firebase.auth().signInWithEmailAndPassword(mail, ww).catch(e=>{
+      ov.querySelector('#lgOk').textContent = 'Inloggen';
+      fout.textContent = (e && (e.code||'').includes('network')) ? 'Geen verbinding, probeer opnieuw' : 'E-mail of wachtwoord klopt niet';
+    });
+  };
+  ov.querySelector('#lgOk').onclick = doeLogin;
+  ov.querySelector('#lgWw').addEventListener('keydown', e=>{ if(e.key==='Enter') doeLogin(); });
+  setTimeout(()=>ov.querySelector('#lgMail').focus(), 100);
+}
+function verbergLogin(){
+  const ov = document.getElementById('loginOv');
+  if(ov) ov.remove();
+}
+
 function startSync(){
   const cfg = store.get('ct_sync', SYNC_STANDAARD);
   if(!cfg || !cfg.config) return;
@@ -1053,8 +1101,18 @@ function startSync(){
   Promise.resolve()
     .then(()=> window.firebase ? null : laden('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js'))
     .then(()=> (window.firebase && firebase.database) ? null : laden('https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js'))
+    .then(()=> (window.firebase && firebase.auth) ? null : laden('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js'))
     .then(()=>{
       if(!firebase.apps.length) firebase.initializeApp(cfg.config);
+      // Eerst inloggen: pas daarna mag dit apparaat bij de data
+      return new Promise((klaar)=>{
+        firebase.auth().onAuthStateChanged(user=>{
+          if(user){ verbergLogin(); klaar(); }
+          else toonLogin();
+        });
+      });
+    })
+    .then(()=>{
       db = firebase.database();
       syncPad = 'ct_' + (cfg.sleutel || 'team').replace(/[^A-Za-z0-9_-]/g,'');
       return db.ref(syncPad + '/res').once('value');
@@ -2452,7 +2510,7 @@ function instBackup(){
 
   const pg = instPagina([{n:'Instellingen', ga:toonInstellingen},{n:'Reservekopie', ga:instBackup}], `
     <div class="instH">Reservekopie</div>
-    <div class="instSub">Kish bewaart automatisch elk uur een gedeelde kopie van vandaag, plus een kopie voor elke PA-import. Terugzetten herstelt drankjes, statussen en tafels op alle apparaten.</div>
+    <div class="instSub">Kish bewaart automatisch elke 10 minuten een gedeelde kopie van vandaag (alleen als er iets gewijzigd is), plus een kopie voor elke PA-import. Terugzetten herstelt drankjes, statussen en tafels op alle apparaten.</div>
     <div style="display:flex;gap:8px;margin:4px 0 14px">
       <button class="btn ghost" id="bkDownload">Download vandaag als bestand</button>
       <label class="btn ghost" style="cursor:pointer">Bestand terugzetten<input type="file" id="bkUpload" accept=".json" style="display:none"></label>
@@ -2496,7 +2554,7 @@ function instBackup(){
       const slots = Object.entries(v).sort((a,b)=> b[0].localeCompare(a[0]));
       auto.innerHTML = slots.map(([uur, d])=>`
         <div class="instRow" style="cursor:default">
-          <b style="flex:1">${esc(uur)}:00 uur</b>
+          <b style="flex:1">${esc(uur.length === 4 ? uur.slice(0,2) + ':' + uur.slice(2) : uur + ':00')} uur</b>
           <span style="color:var(--muted);font-size:12.5px">${(d.lijst||[]).length} res. &middot; ${new Date(d.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}</span>
           <button class="btn primary" data-uur="${esc(uur)}">Terugzetten</button>
         </div>`).join('');
@@ -3532,6 +3590,7 @@ function toast(msg, soort){
       if(k && k.startsWith('ct_res_') && k.slice(7) < grens) weg.push(k);
       if(k && k.startsWith('ct_backup_') && k.slice(10) < new Date(Date.now() - 14*24*3600*1000).toISOString().slice(0,10)) weg.push(k);
       if(k && k.startsWith('ct_snap_') && k.slice(8, 18) < grens) weg.push(k);
+      if(k && k.startsWith('ct_snaphash_') && k.slice(12) < grens) weg.push(k);
     }
     weg.forEach(k=>{
       localStorage.removeItem(k);
@@ -3549,13 +3608,18 @@ function maakUurSnapshot(){
   const datum = todayStr();
   const lijst = store.get('ct_res_' + datum, []);
   if(!Array.isArray(lijst) || !lijst.length) return;
-  const uur = String(new Date().getHours()).padStart(2, '0');
-  const guard = 'ct_snap_' + datum + '_' + uur;
-  if(localStorage.getItem(guard)) return; // dit uur al gedaan vanaf dit apparaat
+  const nu = new Date();
+  const slot = String(nu.getHours()).padStart(2, '0') + String(Math.floor(nu.getMinutes()/10)*10).padStart(2, '0');
+  const guard = 'ct_snap_' + datum + '_' + slot;
+  if(localStorage.getItem(guard)) return; // dit blok van 10 minuten al gedaan vanaf dit apparaat
+  // Niets veranderd sinds de vorige kopie? Dan overslaan, scheelt data
+  const hash = lijst.length + ':' + Math.max(0, ...lijst.map(r => +r.bewerkt || 0));
+  if(localStorage.getItem('ct_snaphash_' + datum) === hash){ localStorage.setItem(guard, '1'); return; }
   localStorage.setItem(guard, '1');
-  db.ref(syncPad + '/backup/' + datum + '/' + uur).set({ t: Date.now(), lijst }).catch(()=>{});
+  localStorage.setItem('ct_snaphash_' + datum, hash);
+  db.ref(syncPad + '/backup/' + datum + '/' + slot).set({ t: Date.now(), lijst }).catch(()=>{});
 }
-setInterval(maakUurSnapshot, 5*60000);
+setInterval(maakUurSnapshot, 2*60000);
 setTimeout(maakUurSnapshot, 8000);
 
 // Kwartier na showstart: gasten die nog op Verwacht staan automatisch op Niet gemeld
