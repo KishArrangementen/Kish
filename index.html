@@ -171,6 +171,7 @@ body.themaHu #brand::after{content:' \1F1ED\1F1FA'}
 body.themaHu #sideRail button.on{border-left-color:#477050}
 body.themaHu #sideRail button.on svg,body.themaHu #sideRail button.on{color:#6dc493}
 
+#bezigBar{background:#7a5b12;color:#ffe9b8;border:1px solid #a97f1d;border-radius:10px;padding:9px 13px;font-size:12.5px;font-weight:700;margin:4px 0 10px;animation:kishFade .2s ease-out}
 #loginOv{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
 .loginBox{width:min(360px,92vw);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px 24px;text-align:center}
 .loginBox .loginLogo{width:56px;height:56px;border-radius:14px;background:var(--accent);color:#fff;font-size:30px;font-weight:900;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
@@ -1681,8 +1682,49 @@ document.getElementById('btnWisPA').onclick = ()=>{
 
 /* ============ FORMULIER ============ */
 const sheetWrap = document.getElementById('sheetWrap'), sheet = document.getElementById('sheet');
+// Vast apparaatlabel voor de aanwezigheid (bijv. Apparaat-K3)
+const APPARAAT_ID = (()=>{
+  let v = store.get('ct_apparaat_id', '');
+  if(!v){ v = 'A' + Math.random().toString(36).slice(2, 7).toUpperCase(); store.set('ct_apparaat_id', v); }
+  return v;
+})();
+
+function meldBezig(rid){
+  stopBezig();
+  if(typeof db === 'undefined' || !db || !rid) return;
+  const basis = db.ref(syncPad + '/bezig/' + curDate + '/' + rid);
+  const mijn = basis.child(APPARAAT_ID);
+  mijn.set({ t: Date.now() }).catch(()=>{});
+  mijn.onDisconnect().remove();
+  const luister = basis.on('value', sn=>{
+    const v = sn.val() || {};
+    const anderen = Object.entries(v).filter(([k, d]) => k !== APPARAAT_ID && d && Date.now() - (d.t||0) < 10*60000);
+    let bar = sheet.querySelector('#bezigBar');
+    if(anderen.length){
+      if(!bar){
+        bar = document.createElement('div');
+        bar.id = 'bezigBar';
+        const kop = sheet.querySelector('.sheetHead');
+        if(kop) kop.insertAdjacentElement('afterend', bar); else sheet.prepend(bar);
+      }
+      bar.innerHTML = '\u270F\uFE0F Een collega is deze reservering nu ook aan het bewerken';
+    } else if(bar){
+      bar.remove();
+    }
+  });
+  window._bezigStop = ()=>{
+    basis.off('value', luister);
+    mijn.remove().catch(()=>{});
+    mijn.onDisconnect().cancel();
+  };
+}
+function stopBezig(){
+  if(window._bezigStop){ try{ window._bezigStop(); }catch(e){} window._bezigStop = null; }
+}
+
 function closeSheet(){
   sheetWrap.classList.remove('open');
+  stopBezig();
   document.querySelectorAll('.tbl.samen').forEach(x=>x.classList.remove('samen'));
 }
 function sheetBgTik(){
@@ -3001,6 +3043,7 @@ window.openFormById = (id)=>{
   const r = getRes().find(x=>x.id===id);
   if(!r) return;
   openForm(r, false);
+  meldBezig(id);
   // Verse versie ophalen: had een collega dit record net bijgewerkt, dan verversen we het formulier
   if(typeof db !== 'undefined' && db){
     db.ref(syncPad + '/res/' + curDate + '/' + id).once('value').then(sn=>{
@@ -3597,6 +3640,7 @@ function toast(msg, soort){
       if(k.startsWith('ct_res_') && typeof db !== 'undefined' && db){
         db.ref(syncPad + '/res/' + k.slice(7)).remove().catch(()=>{});
         db.ref(syncPad + '/backup/' + k.slice(7)).remove().catch(()=>{});
+        db.ref(syncPad + '/bezig/' + k.slice(7)).remove().catch(()=>{});
       }
     });
   }catch(e){}
