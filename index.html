@@ -1008,7 +1008,7 @@ function openThema(){
 }
 
 const btnThema = document.getElementById('btnThema');
-if(btnThema) btnThema.onclick = ()=>{ closeDrawer(); vraagPin(()=>openThema(), true); };
+if(btnThema) btnThema.onclick = ()=>{ closeDrawer(); vraagPin(()=>openThema(), 'thema'); };
 scrim.onclick = closeDrawer;
 drawer.querySelectorAll('nav button[data-view]').forEach(b=>{
   b.onclick = ()=>{ curView = b.dataset.view; store.set('ct_view',curView); if(curView==='map') mapUserZoom = false; if(curView==='tafels') tlZoom = 1.6; closeDrawer(); render(); };
@@ -1684,6 +1684,7 @@ function openPAImport(){
   };
 }
 const MANAGER_PIN = '5555';
+const KATA_CODE = '1122'; // eigen code voor het themamenu
 function geldigePin(code){
   if(code === MANAGER_PIN) return true;
   return (store.get('ct_pins', []) || []).some(p => p && String(p.code) === code);
@@ -2957,7 +2958,8 @@ function vraagPin(cb, alleenHoofd){
   setTimeout(()=>veld.focus(), 50);
   const check = ()=>{
     const code = veld.value.trim();
-    if(alleenHoofd ? (code === MANAGER_PIN) : geldigePin(code)){ ov.remove(); cb(); }
+    const themaOk = alleenHoofd === 'thema' && code === KATA_CODE;
+    if((alleenHoofd ? (code === MANAGER_PIN || themaOk) : geldigePin(code))){ ov.remove(); cb(); }
     else{
       fout.textContent = 'Onjuiste code';
       veld.value = '';
