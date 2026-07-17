@@ -1788,6 +1788,7 @@ function andereTafelClaim(loc, nr){
   return Object.entries(v).some(([app, d]) => app !== APPARAAT_ID && d && Date.now() - (d.t||0) < 10*60000);
 }
 function toonTafelClaimWaarschuwing(){
+  if(window._tafelPopVerversen) window._tafelPopVerversen();
   const sel = window._tafelClaimSelectie;
   let bar = sheet.querySelector('#tafelBar');
   const druk = sel ? sel.tafels.filter(nr => andereTafelClaim(sel.loc, nr)) : [];
@@ -2369,6 +2370,28 @@ function openForm(existing, walkin){
       <label class="tRow ${conf.has(t.nr)?'conflict':''} ${claim(t.nr)?'geclaimd':''}"><input type="checkbox" value="${t.nr}" ${selTafels.has(t.nr)?'checked':''} ${claim(t.nr)?'disabled':''}><b>${t.nr}</b><span>${t.cap ? t.cap+' zitplaatsen' : ''}${conf.has(t.nr)?' &middot; bezet':''}${claim(t.nr)?' &middot; \u{1F512} collega is bezig':''}</span></label>`).join('');
     ov.appendChild(pop);
     document.body.appendChild(ov);
+    // Live verversen: claims en bezette tafels bijwerken terwijl het lijstje open staat
+    function verversPop(){
+      if(!document.body.contains(pop)){
+        window._tafelPopVerversen = null;
+        if(window._tafelPopTimer){ clearInterval(window._tafelPopTimer); window._tafelPopTimer = null; }
+        return;
+      }
+      const conf2 = conflictSet();
+      pop.querySelectorAll('input[value]').forEach(cb=>{
+        const nr = cb.value;
+        const rij = cb.closest('label');
+        const gecl = !selTafels.has(nr) && andereTafelClaim(locSel.value, nr);
+        rij.classList.toggle('geclaimd', gecl);
+        rij.classList.toggle('conflict', conf2.has(nr));
+        cb.disabled = gecl;
+        const t = tafelsVoor(locSel.value).find(x=>String(x.nr)===String(nr)) || {};
+        rij.querySelector('span').innerHTML = (t.cap ? t.cap+' zitplaatsen' : '') + (conf2.has(nr)?' &middot; bezet':'') + (gecl?' &middot; \u{1F512} collega is bezig':'');
+      });
+    }
+    window._tafelPopVerversen = verversPop;
+    if(window._tafelPopTimer) clearInterval(window._tafelPopTimer);
+    window._tafelPopTimer = setInterval(verversPop, 4000);
     const b = tafelBtn.getBoundingClientRect();
     const pw = 280;
     pop.style.left = Math.max(8, Math.min(window.innerWidth - pw - 8, b.left - 130))+'px';
