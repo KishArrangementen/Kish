@@ -1030,9 +1030,11 @@ function toonOffline(offline){
     if(!b){
       b = document.createElement('div');
       b.id = 'offlineBar';
-      b.innerHTML = '\u26A0\uFE0F <b>Offline</b> &middot; laat de app openstaan!<br><span style="font-weight:500">Wijzigingen syncen vanzelf zodra de wifi terug is. Sluit je de app nu af, dan gaan de laatste wijzigingen verloren.</span>';
       document.body.appendChild(b);
     }
+    b.innerHTML = (typeof noodActief === 'function' && noodActief())
+      ? '\u{1F6DF} <b>Noodmodus</b> &middot; hoofdsync onbereikbaar, apparaten syncen door via het reservekanaal (Supabase). Laat de app openstaan.'
+      : '\u26A0\uFE0F <b>Offline</b> &middot; laat de app openstaan!<br><span style="font-weight:500">Wijzigingen syncen vanzelf zodra de wifi terug is. Sluit je de app nu af, dan gaan de laatste wijzigingen verloren.</span>';
   } else if(b){
     b.remove();
   }
@@ -1134,10 +1136,21 @@ function startSync(){
     .then(()=>{
       db = firebase.database();
       syncPad = 'ct_' + (cfg.sleutel || 'team').replace(/[^A-Za-z0-9_-]/g,'');
-      return db.ref(syncPad + '/res').once('value');
+      // Indicator meteen aanzetten: ook als Firebase zelf plat ligt zie je dan de rode stip en offline-balk
+      db.ref('.info/connected').on('value', sn=>{
+        window._verbonden = !!sn.val();
+        window._verbindingWegSinds = sn.val() ? null : (window._verbindingWegSinds || Date.now());
+        syncStatus(sn.val() ? '#22c08a' : '#e5304d');
+        toonOffline(!sn.val());
+      });
+      // Eerste ophalen mag de boel nooit blokkeren: na 5 seconden gaan we door met de lokale kopie
+      return Promise.race([
+        db.ref(syncPad + '/res').once('value'),
+        new Promise(res => setTimeout(()=>res(null), 5000))
+      ]);
     })
     .then(snap=>{
-      const alles = snap.val() || {};
+      const alles = (snap && snap.val()) || {};
       Object.entries(alles).forEach(([datum, obj])=>{
         store.set('ct_res_'+datum, Object.values(obj||{}));
       });
@@ -1152,11 +1165,6 @@ function startSync(){
       db.ref(syncPad + '/pins').on('value', sn=>{
         const v = sn.val();
         if(v) store.set('ct_pins', v);
-      });
-      db.ref('.info/connected').on('value', sn=>{
-        window._verbonden = !!sn.val();
-        syncStatus(sn.val() ? '#22c08a' : '#e5304d');
-        toonOffline(!sn.val());
       });
       syncSubDatum = null;
       render();
@@ -1178,10 +1186,22 @@ function abonneerDatum(){
     if(vasteDatum === curDate && !sheetWrap.classList.contains('open')) render();
   });
 }
-function syncSetRes(datum, r){ if(db && r && r.id) db.ref(syncPad+'/res/'+datum+'/'+r.id).set(r); }
+function syncSetRes(datum, r){
+  if(db && r && r.id) db.ref(syncPad+'/res/'+datum+'/'+r.id).set(r);
+  if(r && r.id) supaLiveSchrijf(datum, r.id, r);
+}
 // Veiliger voor snelle acties: alleen de gewijzigde velden syncen zodat verouderde lokale data nooit iets anders overschrijft
-function syncUpdateRes(datum, id, velden){ if(db && id) db.ref(syncPad+'/res/'+datum+'/'+id).update(velden).catch(()=>{}); }
-function syncDelRes(datum, id){ if(db && id) db.ref(syncPad+'/res/'+datum+'/'+id).remove(); }
+function syncUpdateRes(datum, id, velden){
+  if(db && id) db.ref(syncPad+'/res/'+datum+'/'+id).update(velden).catch(()=>{});
+  if(id && noodActief()){
+    const cur = (store.get('ct_res_'+datum, []) || []).find(x => x && x.id === id) || { id };
+    supaLiveSchrijf(datum, id, Object.assign({}, cur, velden));
+  }
+}
+function syncDelRes(datum, id){
+  if(db && id) db.ref(syncPad+'/res/'+datum+'/'+id).remove();
+  if(id) supaLiveSchrijf(datum, id, null);
+}
 function syncLayout(){ if(db) db.ref(syncPad+'/layout').set(layout); }
 function syncTafels(){ if(db) db.ref(syncPad+'/tafels').set(store.get('ct_tafels', {})); }
 function syncPins(){ if(db) db.ref(syncPad+'/pins').set(store.get('ct_pins', [])); }
@@ -2891,6 +2911,94 @@ function instArchief(){
       </div>`).join('') : '<div class="instSub" style="padding:10px 0">Nog geen dagen in het archief.</div>'}`);
 }
 
+// ===== Extern vangnet: momentopnames naar Supabase, los van Firebase =====
+function reserveCfg(){ return store.get('ct_reserve', { url:'', key:'', aan:false }); }
+function reserveKlaar(){ const c = reserveCfg(); return !!(c.aan && c.url && c.key); }
+function reserveHeaders(c){ return { 'apikey': c.key, 'Authorization': 'Bearer ' + c.key, 'Content-Type': 'application/json' }; }
+function reserveSnapshot(handmatig){
+  const c = reserveCfg();
+  if(!reserveKlaar()) return Promise.resolve(false);
+  const datum = curDate;
+  const data = {
+    res: store.get('ct_res_' + datum, []),
+    layout: store.get('ct_layout', null),
+    tafels: store.get('ct_tafels', {}),
+    pins: store.get('ct_pins', [])
+  };
+  const vingerafdruk = JSON.stringify(data.res) + '|' + data.res.length;
+  if(!handmatig && window._reserveVinger === datum + vingerafdruk) return Promise.resolve(false); // niets gewijzigd
+  return fetch(c.url.replace(/\/+$/,'') + '/rest/v1/kish_backup?on_conflict=datum', {
+    method: 'POST',
+    headers: Object.assign({ 'Prefer': 'resolution=merge-duplicates' }, reserveHeaders(c)),
+    body: JSON.stringify([{ datum, data, apparaat: APPARAAT_ID, bijgewerkt: new Date().toISOString() }])
+  }).then(r=>{
+    window._reserveLaatst = { t: Date.now(), ok: r.ok, code: r.status };
+    if(r.ok) window._reserveVinger = datum + vingerafdruk;
+    return r.ok;
+  }).catch(()=>{
+    window._reserveLaatst = { t: Date.now(), ok: false, code: 0 };
+    return false;
+  });
+}
+function reserveOphalen(datum){
+  const c = reserveCfg();
+  if(!c.url || !c.key) return Promise.reject(new Error('geen instellingen'));
+  return fetch(c.url.replace(/\/+$/,'') + '/rest/v1/kish_backup?datum=eq.' + encodeURIComponent(datum) + '&select=datum,data,bijgewerkt', {
+    headers: reserveHeaders(c)
+  }).then(r=>{ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(rows=> rows[0] || null);
+}
+window._reserveTimer = window._reserveTimer || setInterval(()=>{ reserveSnapshot(false); }, 5*60000);
+
+// ===== Noodmodus: als Firebase 30s onbereikbaar is, syncen de apparaten via Supabase door =====
+// Drie sloten voordat de noodmodus aangaat:
+// 1. Firebase al minstens 2 minuten onbereikbaar (een wifi-hikje haalt dat nooit)
+// 2. De browser zegt zelf dat er internet is (anders is het gewoon een internetstoring, dan doet Firebase het bufferen)
+// 3. Supabase is aantoonbaar bereikbaar (recent gelukte proefverbinding)
+function noodKandidaat(){
+  return reserveKlaar() && !window._verbonden && !!window._verbindingWegSinds
+    && (Date.now() - window._verbindingWegSinds > 2*60000)
+    && (typeof navigator === 'undefined' || navigator.onLine !== false);
+}
+function noodActief(){
+  return noodKandidaat() && !!window._supaBereikbaar && (Date.now() - window._supaBereikbaar < 60000);
+}
+function supaLiveSchrijf(datum, id, record){
+  if(!noodActief() || !id) return;
+  const c = reserveCfg();
+  fetch(c.url.replace(/\/+$/,'') + '/rest/v1/kish_live?on_conflict=datum,id', {
+    method: 'POST',
+    headers: Object.assign({ 'Prefer': 'resolution=merge-duplicates' }, reserveHeaders(c)),
+    body: JSON.stringify([{ datum, id, r: record || null, verwijderd: !record, apparaat: APPARAAT_ID, bijgewerkt: new Date().toISOString() }])
+  }).catch(()=>{});
+}
+function supaLivePoll(){
+  if(!noodKandidaat()) return;
+  const c = reserveCfg();
+  const sinds = window._supaPollLaatst || new Date(Date.now() - 15*60000).toISOString();
+  fetch(c.url.replace(/\/+$/,'') + '/rest/v1/kish_live?datum=eq.' + encodeURIComponent(curDate)
+      + '&bijgewerkt=gt.' + encodeURIComponent(sinds)
+      + '&select=id,r,verwijderd,apparaat,bijgewerkt&order=bijgewerkt.asc', { headers: reserveHeaders(c) })
+  .then(r=>{ if(r.ok) window._supaBereikbaar = Date.now(); else window._supaBereikbaar = null; return r.ok ? r.json() : []; })
+  .then(rows=>{
+    if(!rows.length){ toonOffline(!window._verbonden); return; }
+    window._supaPollLaatst = rows[rows.length - 1].bijgewerkt;
+    const lijst = store.get('ct_res_' + curDate, []);
+    let anders = false;
+    for(const rij of rows){
+      if(rij.apparaat === APPARAAT_ID) continue; // eigen wijzigingen zitten er al in
+      const i = lijst.findIndex(x => x && x.id === rij.id);
+      if(rij.verwijderd){ if(i > -1){ lijst.splice(i, 1); anders = true; } }
+      else if(rij.r){ if(i > -1) lijst[i] = rij.r; else lijst.push(rij.r); anders = true; }
+    }
+    if(anders){
+      store.set('ct_res_' + curDate, lijst);
+      if(!sheetWrap.classList.contains('open')) render();
+    }
+    toonOffline(!window._verbonden);
+  }).catch(()=>{ window._supaBereikbaar = null; toonOffline(!window._verbonden); });
+}
+window._supaLiveTimer = window._supaLiveTimer || setInterval(supaLivePoll, 8000);
+
 function instBackup(){
   const kopies = [];
   for(let i = 0; i < localStorage.length; i++){
@@ -2905,6 +3013,19 @@ function instBackup(){
   const pg = instPagina([{n:'Instellingen', ga:toonInstellingen},{n:'Reservekopie', ga:instBackup}], `
     <div class="instH">Reservekopie</div>
     <div class="instSub">Kish bewaart automatisch elke 10 minuten een gedeelde kopie van vandaag (alleen als er iets gewijzigd is), plus een kopie voor elke PA-import. Terugzetten herstelt drankjes, statussen en tafels op alle apparaten.</div>
+    <div class="instKopRij"><span style="flex:1">Extern vangnet (Supabase)</span></div>
+    <div class="instSub">Elke 5 minuten gaat er een kopie van vandaag naar jullie eigen Supabase-project, buiten Firebase om. Ligt Firebase eruit, dan zet je hiermee de laatste stand terug.</div>
+    <div id="rsvStatus" class="instSub" style="padding:0 0 8px"></div>
+    <label style="text-transform:none;font-size:11.5px;color:var(--muted)">Project URL</label>
+    <input id="rsvUrl" placeholder="https://xxxx.supabase.co" style="width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;margin:2px 0 8px" autocomplete="off">
+    <label style="text-transform:none;font-size:11.5px;color:var(--muted)">Anon public sleutel</label>
+    <input id="rsvKey" placeholder="eyJ..." style="width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;margin:2px 0 10px" autocomplete="off">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px">
+      <button class="btn primary" id="rsvOpslaan">Opslaan &amp; aanzetten</button>
+      <button class="btn ghost" id="rsvNu">Nu kopie maken</button>
+      <button class="btn ghost" id="rsvHerstel">Terugzetten uit vangnet</button>
+      <button class="btn danger" id="rsvUit" style="display:none">Uitzetten</button>
+    </div>
     <div style="display:flex;gap:8px;margin:4px 0 14px">
       <button class="btn ghost" id="bkDownload">Download vandaag als bestand</button>
       <label class="btn ghost" style="cursor:pointer">Bestand terugzetten<input type="file" id="bkUpload" accept=".json" style="display:none"></label>
@@ -2918,6 +3039,48 @@ function instBackup(){
         <span style="color:var(--muted);font-size:12.5px">${k.aantal} res. &middot; ${new Date(k.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}</span>
         <button class="btn primary" data-lokaal="${esc(k.datum)}">Terugzetten</button>
       </div>`).join('') : '<div class="instSub" style="padding:8px 0">Nog geen import-kopie op dit apparaat.</div>'}`);
+
+  // --- Extern vangnet: velden vullen en knoppen ---
+  const rsvCfg = reserveCfg();
+  pg.querySelector('#rsvUrl').value = rsvCfg.url || '';
+  pg.querySelector('#rsvKey').value = rsvCfg.key || '';
+  const rsvStatusEl = pg.querySelector('#rsvStatus');
+  const rsvToonStatus = ()=>{
+    if(!reserveKlaar()){ rsvStatusEl.innerHTML = 'Status: <b style="color:var(--muted)">uit</b>'; return; }
+    const l = window._reserveLaatst;
+    if(!l){ rsvStatusEl.innerHTML = 'Status: <b style="color:#22c08a">aan</b> &middot; nog geen kopie gemaakt deze sessie'; return; }
+    const tijd = new Date(l.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+    rsvStatusEl.innerHTML = l.ok
+      ? 'Status: <b style="color:#22c08a">aan</b> &middot; laatste kopie ' + tijd + ' gelukt'
+      : 'Status: <b style="color:#e5304d">fout bij laatste kopie (' + tijd + ')</b> &middot; controleer URL en sleutel';
+  };
+  rsvToonStatus();
+  const rsvUitBtn = pg.querySelector('#rsvUit');
+  if(reserveKlaar()) rsvUitBtn.style.display = '';
+  pg.querySelector('#rsvOpslaan').onclick = ()=>{
+    const url = pg.querySelector('#rsvUrl').value.trim();
+    const key = pg.querySelector('#rsvKey').value.trim();
+    if(!/^https:\/\/.+supabase\.co\/?$/.test(url)){ toast('Vul de project-URL in, zoals https://xxxx.supabase.co'); return; }
+    if(key.length < 30){ toast('Dat lijkt geen geldige anon-sleutel'); return; }
+    store.set('ct_reserve', { url, key, aan:true });
+    toast('Vangnet aan, testkopie wordt gemaakt...', 'groen');
+    reserveSnapshot(true).then(ok=>{ rsvToonStatus(); rsvUitBtn.style.display=''; toast(ok ? 'Testkopie gelukt' : 'Testkopie mislukt, controleer URL en sleutel', ok ? 'groen' : undefined); });
+  };
+  pg.querySelector('#rsvNu').onclick = ()=>{
+    if(!reserveKlaar()){ toast('Vul eerst URL en sleutel in en sla op'); return; }
+    reserveSnapshot(true).then(ok=>{ rsvToonStatus(); toast(ok ? 'Kopie gemaakt' : 'Kopie mislukt', ok ? 'groen' : undefined); });
+  };
+  pg.querySelector('#rsvUit').onclick = ()=>{
+    vraag('Extern vangnet uitzetten?', ()=>{ const c = reserveCfg(); c.aan = false; store.set('ct_reserve', c); rsvToonStatus(); rsvUitBtn.style.display='none'; toast('Vangnet uit'); });
+  };
+  pg.querySelector('#rsvHerstel').onclick = ()=>{
+    if(!reserveCfg().url){ toast('Vul eerst URL en sleutel in'); return; }
+    reserveOphalen(curDate).then(row=>{
+      if(!row || !row.data || !Array.isArray(row.data.res)){ toast('Geen vangnetkopie gevonden voor deze dag'); return; }
+      const tijd = new Date(row.bijgewerkt).toLocaleString('nl-NL',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'});
+      zetTerug(row.datum, row.data.res, tijd + ' (extern vangnet)');
+    }).catch(e=> toast('Ophalen mislukt: ' + e.message));
+  };
 
   const zetTerug = (datum, lijst, tijdTekst)=>{
     vraag('De stand van <b>'+esc(fmtDate(datum))+'</b> van '+tijdTekst+' terugzetten?<br><small style="color:var(--muted)">De huidige stand wordt overschreven, ook op de andere apparaten.</small>', ()=>{
