@@ -3018,7 +3018,8 @@ function instBackup(){
   const pg = instPagina([{n:'Instellingen', ga:toonInstellingen},{n:'Reservekopie', ga:instBackup}], `
     <div class="instH">Reservekopie</div>
     <div class="instSub">Kish bewaart automatisch elke 10 minuten een gedeelde kopie van vandaag (alleen als er iets gewijzigd is), plus een kopie v&oacute;&oacute;r elke PA-import. Terugzetten herstelt drankjes, statussen en tafels op alle apparaten.</div>
-    <div class="instKopRij"><span style="flex:1">Extern vangnet</span></div>
+    <div class="instRow" id="rsvToggle" style="margin-top:6px"><b style="flex:1">Extern vangnet</b><span id="rsvKort" style="color:var(--muted);font-size:12.5px;margin-right:8px"></span><span class="instChev" id="rsvChev">&#8250;</span></div>
+    <div id="rsvBlok" style="display:none">
     <div class="instSub">Extra beveiliging: elke 5 minuten wordt de dag apart weggeschreven op een tweede plek. Valt de gewone verbinding weg, dan schakelt Kish vanzelf over zodat alle apparaten elkaar blijven zien, en weer terug zodra alles normaal is. Je hoeft hier verder niets voor te doen.</div>
     <div id="rsvStatus" class="instSub" style="padding:0 0 8px"></div>
     <label style="text-transform:none;font-size:11.5px;color:var(--muted)">Adres vangnet</label>
@@ -3030,6 +3031,7 @@ function instBackup(){
       <button class="btn ghost" id="rsvNu">Nu kopie maken</button>
       <button class="btn ghost" id="rsvHerstel">Terugzetten uit vangnet</button>
       <button class="btn danger" id="rsvUit" style="display:none">Uitzetten</button>
+    </div>
     </div>
     <div style="display:flex;gap:8px;margin:4px 0 14px">
       <button class="btn ghost" id="bkDownload">Download vandaag als bestand</button>
@@ -3044,6 +3046,22 @@ function instBackup(){
         <span style="color:var(--muted);font-size:12.5px">${k.aantal} res. &middot; ${new Date(k.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}</span>
         <button class="btn primary" data-lokaal="${esc(k.datum)}">Terugzetten</button>
       </div>`).join('') : '<div class="instSub" style="padding:8px 0">Nog geen import-kopie op dit apparaat.</div>'}`);
+
+  // --- Extern vangnet: alleen open te klappen met de managercode ---
+  const rsvBlok = pg.querySelector('#rsvBlok');
+  const rsvChev = pg.querySelector('#rsvChev');
+  pg.querySelector('#rsvKort').textContent = reserveKlaar() ? 'aan' : 'uit';
+  pg.querySelector('#rsvToggle').onclick = ()=>{
+    if(rsvBlok.style.display !== 'none'){
+      rsvBlok.style.display = 'none';
+      rsvChev.style.transform = '';
+      return;
+    }
+    vraagPin(()=>{
+      rsvBlok.style.display = '';
+      rsvChev.style.transform = 'rotate(90deg)';
+    }, true);
+  };
 
   // --- Extern vangnet: velden vullen en knoppen ---
   const rsvCfg = reserveCfg();
@@ -3069,14 +3087,14 @@ function instBackup(){
     if(key.length < 30){ toast('Dat lijkt geen geldige toegangssleutel'); return; }
     store.set('ct_reserve', { url, key, aan:true });
     toast('Vangnet aan, testkopie wordt gemaakt...', 'groen');
-    reserveSnapshot(true).then(ok=>{ rsvToonStatus(); rsvUitBtn.style.display=''; toast(ok ? 'Testkopie gelukt' : 'Testkopie mislukt, controleer URL en sleutel', ok ? 'groen' : undefined); });
+    reserveSnapshot(true).then(ok=>{ rsvToonStatus(); rsvUitBtn.style.display=''; pg.querySelector('#rsvKort').textContent = 'aan'; toast(ok ? 'Testkopie gelukt' : 'Testkopie mislukt, controleer adres en sleutel', ok ? 'groen' : undefined); });
   };
   pg.querySelector('#rsvNu').onclick = ()=>{
     if(!reserveKlaar()){ toast('Vul eerst URL en sleutel in en sla op'); return; }
     reserveSnapshot(true).then(ok=>{ rsvToonStatus(); toast(ok ? 'Kopie gemaakt' : 'Kopie mislukt', ok ? 'groen' : undefined); });
   };
   pg.querySelector('#rsvUit').onclick = ()=>{
-    vraag('Extern vangnet uitzetten?', ()=>{ const c = reserveCfg(); c.aan = false; store.set('ct_reserve', c); rsvToonStatus(); rsvUitBtn.style.display='none'; toast('Vangnet uit'); });
+    vraag('Extern vangnet uitzetten?', ()=>{ const c = reserveCfg(); c.aan = false; store.set('ct_reserve', c); rsvToonStatus(); rsvUitBtn.style.display='none'; pg.querySelector('#rsvKort').textContent = 'uit'; toast('Vangnet uit'); });
   };
   pg.querySelector('#rsvHerstel').onclick = ()=>{
     if(!reserveCfg().url){ toast('Vul eerst URL en sleutel in'); return; }
