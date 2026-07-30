@@ -1033,7 +1033,7 @@ function toonOffline(offline){
       document.body.appendChild(b);
     }
     b.innerHTML = (typeof noodActief === 'function' && noodActief())
-      ? '\u{1F6DF} <b>Noodmodus</b> &middot; hoofdsync onbereikbaar, apparaten syncen door via het reservekanaal (Supabase). Laat de app openstaan.'
+      ? '\u{1F6DF} <b>Noodmodus</b> &middot; hoofdverbinding onbereikbaar, de apparaten syncen door via het vangnet. Laat de app openstaan.'
       : '\u26A0\uFE0F <b>Offline</b> &middot; laat de app openstaan!<br><span style="font-weight:500">Wijzigingen syncen vanzelf zodra de wifi terug is. Sluit je de app nu af, dan gaan de laatste wijzigingen verloren.</span>';
   } else if(b){
     b.remove();
@@ -2737,7 +2737,12 @@ function toonInstellingen(){
     <div class="instRow" id="rManagers"><b style="flex:1">Managers</b><span class="instChev">&#8250;</span></div>
     <div class="instRow" id="rVerkocht"><b style="flex:1">Verkocht vandaag</b><span class="instChev">&#8250;</span></div>
     <div class="instRow" id="rArchief"><b style="flex:1">Dagarchief</b><span class="instChev">&#8250;</span></div>
-    <div class="instRow" id="rBackup"><b style="flex:1">Reservekopie</b><span class="instChev">&#8250;</span></div>`);
+    <div class="instRow" id="rBackup"><b style="flex:1">Reservekopie</b><span class="instChev">&#8250;</span></div>
+    <div style="margin-top:22px;padding-top:14px;border-top:1px solid var(--line);text-align:center;color:var(--muted);font-size:12px;line-height:1.6">
+      <b style="color:var(--txt);letter-spacing:.03em">KISH&trade;</b><br>
+      Tafelreservering AFAS Circustheater<br>
+      &copy; ${new Date().getFullYear()} Kevin Kiene &middot; alle rechten voorbehouden
+    </div>`);
   pg.querySelector('#rZalen').onclick = instZalen;
   pg.querySelector('#rManagers').onclick = instManagers;
   pg.querySelector('#rVerkocht').onclick = instVerkocht;
@@ -3012,13 +3017,13 @@ function instBackup(){
 
   const pg = instPagina([{n:'Instellingen', ga:toonInstellingen},{n:'Reservekopie', ga:instBackup}], `
     <div class="instH">Reservekopie</div>
-    <div class="instSub">Kish bewaart automatisch elke 10 minuten een gedeelde kopie van vandaag (alleen als er iets gewijzigd is), plus een kopie voor elke PA-import. Terugzetten herstelt drankjes, statussen en tafels op alle apparaten.</div>
-    <div class="instKopRij"><span style="flex:1">Extern vangnet (Supabase)</span></div>
-    <div class="instSub">Elke 5 minuten gaat er een kopie van vandaag naar jullie eigen Supabase-project, buiten Firebase om. Ligt Firebase eruit, dan zet je hiermee de laatste stand terug.</div>
+    <div class="instSub">Kish bewaart automatisch elke 10 minuten een gedeelde kopie van vandaag (alleen als er iets gewijzigd is), plus een kopie v&oacute;&oacute;r elke PA-import. Terugzetten herstelt drankjes, statussen en tafels op alle apparaten.</div>
+    <div class="instKopRij"><span style="flex:1">Extern vangnet</span></div>
+    <div class="instSub">Extra beveiliging: elke 5 minuten wordt de dag apart weggeschreven op een tweede plek. Valt de gewone verbinding weg, dan schakelt Kish vanzelf over zodat alle apparaten elkaar blijven zien, en weer terug zodra alles normaal is. Je hoeft hier verder niets voor te doen.</div>
     <div id="rsvStatus" class="instSub" style="padding:0 0 8px"></div>
-    <label style="text-transform:none;font-size:11.5px;color:var(--muted)">Project URL</label>
+    <label style="text-transform:none;font-size:11.5px;color:var(--muted)">Adres vangnet</label>
     <input id="rsvUrl" placeholder="https://xxxx.supabase.co" style="width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;margin:2px 0 8px" autocomplete="off">
-    <label style="text-transform:none;font-size:11.5px;color:var(--muted)">Anon public sleutel</label>
+    <label style="text-transform:none;font-size:11.5px;color:var(--muted)">Toegangssleutel</label>
     <input id="rsvKey" placeholder="eyJ..." style="width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;margin:2px 0 10px" autocomplete="off">
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px">
       <button class="btn primary" id="rsvOpslaan">Opslaan &amp; aanzetten</button>
@@ -3060,8 +3065,8 @@ function instBackup(){
   pg.querySelector('#rsvOpslaan').onclick = ()=>{
     const url = pg.querySelector('#rsvUrl').value.trim();
     const key = pg.querySelector('#rsvKey').value.trim();
-    if(!/^https:\/\/.+supabase\.co\/?$/.test(url)){ toast('Vul de project-URL in, zoals https://xxxx.supabase.co'); return; }
-    if(key.length < 30){ toast('Dat lijkt geen geldige anon-sleutel'); return; }
+    if(!/^https:\/\/.+supabase\.co\/?$/.test(url)){ toast('Vul het adres van het vangnet in'); return; }
+    if(key.length < 30){ toast('Dat lijkt geen geldige toegangssleutel'); return; }
     store.set('ct_reserve', { url, key, aan:true });
     toast('Vangnet aan, testkopie wordt gemaakt...', 'groen');
     reserveSnapshot(true).then(ok=>{ rsvToonStatus(); rsvUitBtn.style.display=''; toast(ok ? 'Testkopie gelukt' : 'Testkopie mislukt, controleer URL en sleutel', ok ? 'groen' : undefined); });
