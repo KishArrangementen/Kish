@@ -1,8 +1,19 @@
-// Kish serviceworker: netwerk eerst (altijd de nieuwste versie),
-// met terugval op de laatst opgeslagen kopie als het netwerk weg is,
-// als de host een foutmelding teruggeeft, of als de host blijft hangen.
-const CACHE = 'kish-v3';
-const TIMEOUT = 4000; // na 4 seconden wachten pakken we de opgeslagen kopie
+// Kish serviceworker
+// Volgorde bij het laden van de app:
+//   1. het eigen adres (netwerk eerst, zo draait iedereen op de nieuwste versie)
+//   2. de kopie die op dit apparaat is opgeslagen
+//   3. het reserveadres (de spiegel), als het eigen adres plat ligt
+const CACHE = 'kish-v4';
+const TIMEOUT = 4000; // langer wachten heeft geen zin, dan pakken we de kopie
+
+// Beide adressen waarop Kish draait. Het adres waar je nu bent telt niet mee als reserve.
+const ADRESSEN = [
+  'https://kisharrangementen.github.io/Kish/',
+  'https://kish-backup.netlify.app/'
+];
+function reserveAdres(){
+  return ADRESSEN.filter(a => a.indexOf(self.location.hostname) === -1)[0] || null;
+}
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
@@ -32,8 +43,26 @@ self.addEventListener('fetch', (e) => {
     const uitCache = () => c.match(req, { ignoreSearch: req.mode === 'navigate' })
       .then(k => k || (req.mode === 'navigate' ? c.match('./') : null));
 
+    // Laatste redmiddel: de app van het andere adres halen.
+    // Alleen bij het openen van de app zelf, de rest zit in het bestand ingebakken.
+    const viaSpiegel = async () => {
+      if(req.mode !== 'navigate') return null;
+      const adres = reserveAdres();
+      if(!adres) return null;
+      try {
+        const antw = await Promise.race([
+          fetch(adres, { cache: 'no-store' }),
+          new Promise((_, stop) => setTimeout(() => stop(new Error('traag')), TIMEOUT))
+        ]);
+        if(antw && antw.ok && antw.type !== 'opaque'){
+          c.put('./', antw.clone()).catch(()=>{});
+          return antw;
+        }
+      } catch (err) { /* spiegel ook onbereikbaar */ }
+      return null;
+    };
+
     try {
-      // Blijft de host hangen, dan niet eindeloos wachten
       const vers = await Promise.race([
         fetch(req),
         new Promise((_, stop) => setTimeout(() => stop(new Error('traag')), TIMEOUT))
@@ -44,15 +73,15 @@ self.addEventListener('fetch', (e) => {
         return vers;
       }
 
-      // Host antwoordt wel, maar met een fout (bijv. 500 of 503 bij een storing):
-      // dan is de laatst bekende goede kopie beter dan een foutpagina
-      const kopie = await uitCache();
-      return kopie || vers;
+      // Adres antwoordt met een fout (bijvoorbeeld 500 of 503 bij een storing)
+      return (await uitCache()) || (await viaSpiegel()) || vers;
 
     } catch (err) {
-      // Geen netwerk of te traag: de laatst bekende kopie
+      // Geen netwerk, of het adres bleef hangen
       const kopie = await uitCache();
       if(kopie) return kopie;
+      const spiegel = await viaSpiegel();
+      if(spiegel) return spiegel;
       throw err;
     }
   })());
