@@ -3,16 +3,17 @@
 //   1. het eigen adres (netwerk eerst, zo draait iedereen op de nieuwste versie)
 //   2. de kopie die op dit apparaat is opgeslagen
 //   3. het reserveadres (de spiegel), als het eigen adres plat ligt
-const CACHE = 'kish-v4';
+const CACHE = 'kish-v5';
 const TIMEOUT = 4000; // langer wachten heeft geen zin, dan pakken we de kopie
 
 // Beide adressen waarop Kish draait. Het adres waar je nu bent telt niet mee als reserve.
 const ADRESSEN = [
-  'https://kisharrangementen.github.io/Kish/',
-  'https://kish-backup.netlify.app/'
+  'https://kish-arrangementen.nl/',
+  'https://kish-backup.netlify.app/',
+  'https://kisharrangementen.github.io/Kish/'
 ];
-function reserveAdres(){
-  return ADRESSEN.filter(a => a.indexOf(self.location.hostname) === -1)[0] || null;
+function reserveAdressen(){
+  return ADRESSEN.filter(a => a.indexOf(self.location.hostname) === -1);
 }
 
 self.addEventListener('install', (e) => {
@@ -47,18 +48,18 @@ self.addEventListener('fetch', (e) => {
     // Alleen bij het openen van de app zelf, de rest zit in het bestand ingebakken.
     const viaSpiegel = async () => {
       if(req.mode !== 'navigate') return null;
-      const adres = reserveAdres();
-      if(!adres) return null;
-      try {
-        const antw = await Promise.race([
-          fetch(adres, { cache: 'no-store' }),
-          new Promise((_, stop) => setTimeout(() => stop(new Error('traag')), TIMEOUT))
-        ]);
-        if(antw && antw.ok && antw.type !== 'opaque'){
-          c.put('./', antw.clone()).catch(()=>{});
-          return antw;
-        }
-      } catch (err) { /* spiegel ook onbereikbaar */ }
+      for(const adres of reserveAdressen()){
+        try {
+          const antw = await Promise.race([
+            fetch(adres, { cache: 'no-store' }),
+            new Promise((_, stop) => setTimeout(() => stop(new Error('traag')), TIMEOUT))
+          ]);
+          if(antw && antw.ok && antw.type !== 'opaque'){
+            c.put('./', antw.clone()).catch(()=>{});
+            return antw;
+          }
+        } catch (err) { /* dit adres ook onbereikbaar, volgende proberen */ }
+      }
       return null;
     };
 

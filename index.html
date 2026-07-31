@@ -2094,6 +2094,8 @@ function minNaarTijd(min){
 }
 
 // Welke tafels staan fysiek naast elkaar en mogen gecombineerd worden (volgorde = de rij zoals ze staan)
+// Hoge tafels: bruikbaar, maar minder prettig. Komen achteraan in de automatische keuze.
+const HOGE_TAFELS = new Set(['201','202','215','216','217']);
 const KOPPEL_GROEPEN = {
   'Theaterrestaurant': [
     ['101','102','103','104','105'],
@@ -2118,6 +2120,17 @@ const KOPPEL_GROEPEN = {
     ['147','150'],
     ['148','149'],
     ['151'], ['152']
+  ],
+  'Circusbar': [
+    // Echte opstelling (Kevin, 18 juli 2026):
+    // 201/202 hoog en los, 203 laag en los, 214 los
+    // 204-205-206 staan naast elkaar, 207 t/m 212 is een aaneengesloten rij
+    // 215-217 zijn hoge tafels, die pakt hij alleen als het niet anders kan
+    ['201'], ['202'], ['203'],
+    ['204','205','206'],
+    ['207','208','209','210','211','212'],
+    ['214'],
+    ['215','216','217']
   ],
   'Le Cirque': [
     ['1','2'],
@@ -2341,7 +2354,8 @@ function openForm(existing, walkin){
     const conf = conflictSet();
     const vrij = tafelsVoor(locSel.value).filter(t=>!conf.has(t.nr) && !andereTafelClaim(locSel.value, t.nr));
     const past = vrij.filter(t=>(t.cap||2) >= paxN)
-      .sort((a,b)=>((a.cap||2)-(b.cap||2)) || ((+a.nr||0)-(+b.nr||0)));
+      .sort((a,b)=>(HOGE_TAFELS.has(String(a.nr))?1:0) - (HOGE_TAFELS.has(String(b.nr))?1:0)
+        || ((a.cap||2)-(b.cap||2)) || ((+a.nr||0)-(+b.nr||0)));
     if(past.length) return [past[0].nr];
     const vrijMap = {};
     vrij.forEach(t=>{ vrijMap[String(t.nr)] = t.cap || 2; });
