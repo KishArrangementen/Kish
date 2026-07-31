@@ -40,7 +40,7 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 /* Icoonbalk links (desktop) */
 #sideRail{display:none;position:fixed;left:0;top:0;bottom:0;width:54px;background:#14161d;border-right:1px solid var(--line);z-index:45;flex-direction:column;align-items:center;padding:10px 0}
 .railAvatar{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#fff;font-weight:900;font-size:17px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;flex:0 0 auto;font-family:Arial,sans-serif}
-#sideRail button{width:100%;padding:14px 0;color:#8b92a5;display:flex;justify-content:center;position:relative}#sideRail #railInst{margin-top:auto}#sideRail #railMenu{margin-bottom:4px}
+#sideRail button{width:100%;padding:14px 0;color:#8b92a5;display:flex;align-items:center;justify-content:center;position:relative}#sideRail #railInst{margin-top:auto}#sideRail #railMenu{margin-bottom:4px}
 #sideRail button:active{color:#fff}
 #sideRail button.on{color:#fff;background:var(--panel2)}
 #sideRail button.on::before{content:'';position:absolute;left:0;top:9px;bottom:9px;width:3px;background:var(--accent);border-radius:0 3px 3px 0}
@@ -192,10 +192,9 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 
 /* Zijbalk uitklappen: hij wordt breder en de inhoud schuift mee, zoals in DISH */
 #sideRail{overflow:hidden}
-.rlTxt{display:none;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden}
-#railMenu{background:var(--panel2);color:#8b92a5;border:1px solid var(--line);border-radius:10px;
-  width:34px;height:34px;flex:0 0 34px;padding:0;margin:2px auto 12px;overflow:visible}
-#railMenu:hover{color:var(--accent);border-color:var(--accent)}
+.rlTxt{display:none;font-size:14px;font-weight:600;white-space:nowrap}
+#railMenu{margin-bottom:10px}
+#railMenu:hover{color:var(--accent)}
 #railMenu svg{width:18px;height:18px}
 @media (prefers-reduced-motion: no-preference){
   #sideRail{transition:width .22s ease}
@@ -207,8 +206,8 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
   body.railOpen #topbar{margin-left:-230px}
   body.railOpen #sideRail{width:230px;align-items:stretch}
   body.railOpen .rlTxt{display:inline}
-  body.railOpen #sideRail button{justify-content:flex-start;gap:13px;padding-left:17px}
-  body.railOpen #railMenu{width:auto;height:38px;flex:0 0 38px;margin:2px 14px 12px;justify-content:flex-start;padding-left:11px;gap:10px}
+  body.railOpen #sideRail button{justify-content:flex-start;gap:13px;padding-left:17px}body.railOpen #sideRail #railMenu{justify-content:center;padding:0 18px}
+  body.railOpen #railMenu{width:auto;height:40px;flex:0 0 auto;margin:6px 14px 14px;align-items:center;justify-content:center;padding:0 18px;gap:9px;background:var(--panel2);border:1px solid var(--line);border-radius:10px}body.railOpen #railMenu:hover{color:#fff;background:var(--accent);border-color:var(--accent)}
   body.railOpen #railMenu svg{transform:rotate(180deg)}
 }
 
@@ -587,7 +586,7 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
 .tlLocRow{position:sticky;left:0;padding:16px 6px 8px;font-size:14px;font-weight:800;width:max-content}
 .tlRow{display:flex;border-top:1px solid var(--line);width:max-content;min-width:100%}
 #offlineBar{position:fixed;left:50%;transform:translateX(-50%);top:calc(64px + env(safe-area-inset-top));z-index:85;background:#7f1d1d;color:#fecaca;border:1px solid #b91c1c;padding:10px 18px;border-radius:12px;font-size:12.5px;font-weight:700;box-shadow:0 8px 26px rgba(0,0,0,.5);text-align:center;max-width:min(480px,92vw);line-height:1.45}
-.tlNu{position:absolute;top:0;width:2px;background:#e5304d;z-index:4;pointer-events:none;box-shadow:0 0 6px rgba(229,48,77,.5)}.tlNu::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:10px;height:10px;border-radius:50%;background:#e5304d}
+.tlNu{position:absolute;top:0;width:2px;background:#e5304d;z-index:7;pointer-events:none;box-shadow:0 0 6px rgba(229,48,77,.5)}.tlNu::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:10px;height:10px;border-radius:50%;background:#e5304d}
 .tlNu::before{content:'';position:absolute;top:0;left:-4px;width:10px;height:10px;border-radius:50%;background:#e5304d}
 .tlRow.sleepDoel{background:rgba(34,192,138,.14)}
 .tlBlock.sleepbaar{touch-action:none;cursor:grab}
@@ -601,7 +600,7 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
 .tlGrid.q{opacity:.22}
 .tlNow{position:absolute;top:0;bottom:0;width:2px;background:#e5304d;z-index:2;pointer-events:none}
 .tlNowDot{position:absolute;top:2px;width:10px;height:10px;border-radius:50%;background:#e5304d;transform:translateX(-50%)}
-.tlBlock{position:absolute;top:4px;bottom:4px;background:var(--accent2);border-left:8px solid var(--accent);border-radius:6px;color:#1a0d05;display:flex;align-items:center;gap:7px;padding:0 8px;overflow:hidden;white-space:nowrap;font-size:13.5px;cursor:pointer}
+.tlBlock{position:absolute;top:4px;bottom:4px;z-index:1;background:var(--accent2);border-left:8px solid var(--accent);border-radius:6px;color:#1a0d05;display:flex;align-items:center;gap:7px;padding:0 8px;overflow:hidden;white-space:nowrap;font-size:13.5px;cursor:pointer}
 .tlBlock.in{background:#059669;border-left-color:#047252;color:#fff}
 .tlBlock.arr{background:#059669;border-left-color:#047252;color:#fff}
 .tlBlock.nm{background:#f87171;border-left-color:#dc2626;color:#fff}
