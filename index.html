@@ -50,7 +50,7 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
   body{padding-left:54px}
   #topbar{margin-left:-54px;padding-left:14px}
   /* Tijdlijn scrolt binnen zijn eigen vak, zodat de balk onderaan altijd zichtbaar is */
-  .tlScroll{max-height:calc(100vh - 235px);overflow:auto;scrollbar-width:thin;scrollbar-color:#3a4770 var(--panel2)}
+  .tlScroll{scrollbar-width:thin;scrollbar-color:#3a4770 var(--panel2)}
   .tlScroll::-webkit-scrollbar{height:13px;width:13px}
   .tlScroll::-webkit-scrollbar-track{background:var(--panel2);border-radius:7px}
   .tlScroll::-webkit-scrollbar-thumb{background:#3a4770;border-radius:7px;border:3px solid var(--panel2)}
@@ -194,7 +194,7 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 #sideRail{overflow:hidden}
 .rlTxt{display:none;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden}
 #railMenu{background:var(--panel2);color:#8b92a5;border:1px solid var(--line);border-radius:10px;
-  width:34px;height:34px;flex:0 0 34px;padding:0;margin:2px auto 12px}
+  width:34px;height:34px;flex:0 0 34px;padding:0;margin:2px auto 12px;overflow:visible}
 #railMenu:hover{color:var(--accent);border-color:var(--accent)}
 #railMenu svg{width:18px;height:18px}
 @media (prefers-reduced-motion: no-preference){
@@ -575,11 +575,11 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
 .btn.green{background:var(--green);color:#fff}
 
 /* Tijdlijn */
-.tlScroll{overflow-x:auto;margin:0;padding:0 0 8px;-webkit-overflow-scrolling:touch;position:relative}
+.tlScroll{overflow:auto;margin:0;padding:0 0 8px;-webkit-overflow-scrolling:touch;position:relative;max-height:calc(100dvh - 210px)}
 
 .tlHead{display:flex;position:sticky;top:0;background:var(--bg);z-index:9;width:max-content;min-width:100%}
 @media (max-width:999px){
-  .tlHead{top:calc(56px + env(safe-area-inset-top))}
+  
 }
 .tlHours{position:relative;height:34px;flex:0 0 auto}
 .tlHour{position:absolute;top:8px;font-size:13px;font-weight:700;color:var(--muted);transform:translateX(-50%)}
