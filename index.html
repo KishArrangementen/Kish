@@ -183,9 +183,10 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 /* Zijbalk uitklappen: hij wordt breder en de inhoud schuift mee, zoals in DISH */
 #sideRail{overflow:hidden}
 .rlTxt{display:none;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden}
-#railMenu{background:var(--accent);color:#fff;border-radius:12px;width:40px;height:40px;flex:0 0 40px;
-  padding:0;margin:0 auto 12px;box-shadow:0 4px 12px rgba(37,99,235,.45)}
-#railMenu:hover{filter:brightness(1.08)}
+#railMenu{background:var(--panel2);color:#8b92a5;border:1px solid var(--line);border-radius:10px;
+  width:34px;height:34px;flex:0 0 34px;padding:0;margin:2px auto 12px}
+#railMenu:hover{color:var(--accent);border-color:var(--accent)}
+#railMenu svg{width:18px;height:18px}
 @media (prefers-reduced-motion: no-preference){
   #sideRail{transition:width .22s ease}
   body{transition:padding-left .22s ease}
@@ -197,7 +198,7 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
   body.railOpen #sideRail{width:230px;align-items:stretch}
   body.railOpen .rlTxt{display:inline}
   body.railOpen #sideRail button{justify-content:flex-start;gap:13px;padding-left:17px}
-  body.railOpen #railMenu{width:auto;height:44px;flex:0 0 44px;margin:0 14px 12px;justify-content:flex-start;padding-left:13px}
+  body.railOpen #railMenu{width:auto;height:38px;flex:0 0 38px;margin:2px 14px 12px;justify-content:flex-start;padding-left:11px;gap:10px}
   body.railOpen #railMenu svg{transform:rotate(180deg)}
 }
 
@@ -378,7 +379,28 @@ body.themaHu #sideRail button.on svg,body.themaHu #sideRail button.on{color:#6dc
 #zoekWrap{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 10px;color:var(--muted);margin-left:auto;margin-right:8px}
 #zoekWrap input{background:none;border:none;padding:0;width:130px;font-size:13.5px;color:var(--txt);outline:none;min-height:auto}
 #zoekWrap button{color:var(--muted);font-size:13px;line-height:1;padding:2px}
-@media (max-width:640px){ #zoekWrap input{width:86px} }
+@media (max-width:640px){
+  #zoekWrap input{width:86px}
+  /* --- Mobiele opmaak: alles onder elkaar in plaats van geperst op een rij --- */
+  #dateNav{position:static;transform:none;flex:1;justify-content:center}
+  #btnScan{margin-left:0}
+  #topbar{gap:2px;padding-left:8px}
+  #topbar button{padding:8px 7px}
+  #btnScan svg{width:23px;height:23px}
+  #btnCal{font-size:20px}
+  #countbar{padding:10px 14px;gap:10px}
+  #countbar .nums{flex:1;white-space:normal;overflow:visible;font-size:13.5px}
+  /* Zoeken zit ingeklapt: tik het vergrootglas aan om te openen */
+  #zoekWrap{margin:0;padding:7px;border-radius:9px}
+  #zoekWrap input{width:0;padding:0;border:0;transition:width .2s ease}
+  #zoekWrap.open input{width:130px;padding:0 2px}
+  #zoekWrap #zoekX{display:none}
+  #countbar .cbTools{display:flex;gap:4px}
+  #countbar .cbTools .ic{padding:7px}
+  /* Ronde knoppen rechtsonder, zoals in DISH: walk-in boven de plus */
+  #fabAdd{width:56px;height:56px;min-width:0;border-radius:50%;padding:0;right:16px;bottom:calc(16px + env(safe-area-inset-bottom))}
+  #fabAdd .fabTxt{display:none}
+}
 .topChip{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:5px;margin:2px 0 14px}
 #topCombi{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
 #topCombi .tlTag{font-size:11px;padding:3px 9px;border-radius:999px;color:#fff;font-weight:700}
@@ -659,6 +681,7 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
 <div id="countbar">
   <div class="nums"><span data-t="res">Reserveringen</span>: <b id="cRes">0</b> / <span data-t="taf">Tafels</span>: <b id="cTaf">0</b> / <span data-t="gast">Gasten</span>: <b id="cGast">0</b></div>
   <div id="zoekWrap"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg><input id="zoekInp" placeholder="Zoek naam..." autocomplete="off"><button id="zoekX" style="display:none">&#10005;</button></div>
+  <div class="cbTools">
   <button class="ic" id="btnWisPA" title="PA's wissen (deze dag)">
     <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
   </button>
@@ -668,6 +691,7 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
   <button class="ic" id="btnPrint" title="Printen">
     <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
   </button>
+  </div>
 </div>
 <div id="filterbar" hidden>
   <div class="fltGroup"><label>Begin</label><input type="text" id="fltBegin" readonly inputmode="none" placeholder="--:--"></div>
@@ -2692,6 +2716,18 @@ window.openStatusMenu = (id, ev)=>{
 const filt = { begin:'', eind:'', zaal:'', status:'', zoek:'' };
 const zoekInp = document.getElementById('zoekInp');
 const zoekX = document.getElementById('zoekX');
+const zoekWrap = document.getElementById('zoekWrap');
+// Op smalle schermen zit het zoekveld ingeklapt: tik het vergrootglas om te openen
+if(zoekWrap && zoekInp){
+  const zoekIcoon = zoekWrap.querySelector('svg');
+  if(zoekIcoon) zoekIcoon.addEventListener('click', (e)=>{
+    if(window.innerWidth > 640) return; // op de PC staat hij altijd open
+    e.stopPropagation();
+    zoekWrap.classList.toggle('open');
+    if(zoekWrap.classList.contains('open')) zoekInp.focus();
+    else { zoekInp.value=''; filt.zoek=''; if(typeof render==='function') render(); }
+  });
+}
 if(zoekInp){
   let zoekTimer = null;
   zoekInp.addEventListener('input', ()=>{
