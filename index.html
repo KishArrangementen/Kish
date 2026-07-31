@@ -2916,10 +2916,47 @@ function instArchief(){
       </div>`).join('') : '<div class="instSub" style="padding:10px 0">Nog geen dagen in het archief.</div>'}`);
 }
 
-// ===== Extern vangnet: momentopnames naar Supabase, los van Firebase =====
-function reserveCfg(){ return store.get('ct_reserve', { url:'', key:'', aan:false }); }
+// ===== Extern vangnet: momentopnames naar een tweede plek, los van de hoofdsync =====
+function reserveCfg(){ return store.get('ct_reserve', { url:'', key:'', ww:'', aan:false }); }
 function reserveKlaar(){ const c = reserveCfg(); return !!(c.aan && c.url && c.key); }
 function reserveHeaders(c){ return { 'apikey': c.key, 'Authorization': 'Bearer ' + c.key, 'Content-Type': 'application/json' }; }
+
+// --- Versleuteling ---
+// De toegangssleutel is bedoeld om openbaar te zijn. Daarom maken we de inhoud zelf onleesbaar:
+// wie de tabel opent ziet alleen ruis. Alleen apparaten met het wachtwoord kunnen het teruglezen.
+function vnB64(bytes){ let s = ''; bytes.forEach(b => s += String.fromCharCode(b)); return btoa(s); }
+function vnBytes(b64){ const s = atob(b64); const u = new Uint8Array(s.length); for(let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+function vangnetSleutel(){
+  const ww = (reserveCfg().ww || '').trim();
+  if(!ww || typeof crypto === 'undefined' || !crypto.subtle) return Promise.resolve(null);
+  if(window._vnKey && window._vnKeyVoor === ww) return Promise.resolve(window._vnKey);
+  const enc = new TextEncoder();
+  return crypto.subtle.importKey('raw', enc.encode(ww), 'PBKDF2', false, ['deriveKey'])
+    .then(basis => crypto.subtle.deriveKey(
+      { name:'PBKDF2', salt: enc.encode('kish-vangnet-v1'), iterations: 150000, hash:'SHA-256' },
+      basis, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']))
+    .then(k => { window._vnKey = k; window._vnKeyVoor = ww; return k; })
+    .catch(() => null);
+}
+function vangnetVersleutel(obj){
+  if(obj === null || obj === undefined) return Promise.resolve(null);
+  return vangnetSleutel().then(k => {
+    if(!k) return obj; // geen wachtwoord ingesteld: dan onversleuteld, met waarschuwing in het scherm
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    return crypto.subtle.encrypt({ name:'AES-GCM', iv }, k, new TextEncoder().encode(JSON.stringify(obj)))
+      .then(cip => ({ v:1, iv: vnB64(iv), d: vnB64(new Uint8Array(cip)) }));
+  });
+}
+function vangnetOntsleutel(obj){
+  if(!obj || obj.v !== 1 || !obj.iv || !obj.d) return Promise.resolve(obj); // oude, onversleutelde kopie
+  return vangnetSleutel().then(k => {
+    if(!k) throw new Error('wachtwoord ontbreekt op dit apparaat');
+    return crypto.subtle.decrypt({ name:'AES-GCM', iv: vnBytes(obj.iv) }, k, vnBytes(obj.d))
+      .then(plat => JSON.parse(new TextDecoder().decode(plat)))
+      .catch(() => { throw new Error('wachtwoord klopt niet'); });
+  });
+}
+
 function reserveSnapshot(handmatig){
   const c = reserveCfg();
   if(!reserveKlaar()) return Promise.resolve(false);
@@ -2932,33 +2969,41 @@ function reserveSnapshot(handmatig){
   };
   const vingerafdruk = JSON.stringify(data.res) + '|' + data.res.length;
   if(!handmatig && window._reserveVinger === datum + vingerafdruk) return Promise.resolve(false); // niets gewijzigd
-  return fetch(c.url.replace(/\/+$/,'') + '/rest/v1/kish_backup?on_conflict=datum', {
-    method: 'POST',
-    headers: Object.assign({ 'Prefer': 'resolution=merge-duplicates' }, reserveHeaders(c)),
-    body: JSON.stringify([{ datum, data, apparaat: APPARAAT_ID, bijgewerkt: new Date().toISOString() }])
-  }).then(r=>{
-    window._reserveLaatst = { t: Date.now(), ok: r.ok, code: r.status };
-    if(r.ok) window._reserveVinger = datum + vingerafdruk;
-    return r.ok;
-  }).catch(()=>{
-    window._reserveLaatst = { t: Date.now(), ok: false, code: 0 };
-    return false;
-  });
+  return vangnetVersleutel(data)
+    .then(pakket => fetch(c.url.replace(/\/+$/,'') + '/rest/v1/kish_backup?on_conflict=datum', {
+      method: 'POST',
+      headers: Object.assign({ 'Prefer': 'resolution=merge-duplicates' }, reserveHeaders(c)),
+      body: JSON.stringify([{ datum, data: pakket, apparaat: APPARAAT_ID, bijgewerkt: new Date().toISOString() }])
+    }))
+    .then(r => {
+      window._reserveLaatst = { t: Date.now(), ok: r.ok, code: r.status };
+      if(r.ok) window._reserveVinger = datum + vingerafdruk;
+      return r.ok;
+    })
+    .catch(() => {
+      window._reserveLaatst = { t: Date.now(), ok: false, code: 0 };
+      return false;
+    });
 }
 function reserveOphalen(datum){
   const c = reserveCfg();
   if(!c.url || !c.key) return Promise.reject(new Error('geen instellingen'));
   return fetch(c.url.replace(/\/+$/,'') + '/rest/v1/kish_backup?datum=eq.' + encodeURIComponent(datum) + '&select=datum,data,bijgewerkt', {
     headers: reserveHeaders(c)
-  }).then(r=>{ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(rows=> rows[0] || null);
+  }).then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(rows => {
+      const rij = rows[0];
+      if(!rij) return null;
+      return vangnetOntsleutel(rij.data).then(d => Object.assign({}, rij, { data: d }));
+    });
 }
 window._reserveTimer = window._reserveTimer || setInterval(()=>{ reserveSnapshot(false); }, 5*60000);
 
-// ===== Noodmodus: als Firebase 30s onbereikbaar is, syncen de apparaten via Supabase door =====
+// ===== Noodmodus: als de hoofdsync langer plat ligt, syncen de apparaten via het vangnet door =====
 // Drie sloten voordat de noodmodus aangaat:
-// 1. Firebase al minstens 2 minuten onbereikbaar (een wifi-hikje haalt dat nooit)
-// 2. De browser zegt zelf dat er internet is (anders is het gewoon een internetstoring, dan doet Firebase het bufferen)
-// 3. Supabase is aantoonbaar bereikbaar (recent gelukte proefverbinding)
+// 1. hoofdsync al minstens 2 minuten onbereikbaar (een wifi-hikje haalt dat nooit)
+// 2. de browser zegt zelf dat er internet is (anders is het een internetstoring en buffert de hoofdsync gewoon)
+// 3. het vangnet is aantoonbaar bereikbaar (recent gelukte proefverbinding)
 function noodKandidaat(){
   return reserveKlaar() && !window._verbonden && !!window._verbindingWegSinds
     && (Date.now() - window._verbindingWegSinds > 2*60000)
@@ -2970,27 +3015,37 @@ function noodActief(){
 function supaLiveSchrijf(datum, id, record){
   if(!noodActief() || !id) return;
   const c = reserveCfg();
-  fetch(c.url.replace(/\/+$/,'') + '/rest/v1/kish_live?on_conflict=datum,id', {
-    method: 'POST',
-    headers: Object.assign({ 'Prefer': 'resolution=merge-duplicates' }, reserveHeaders(c)),
-    body: JSON.stringify([{ datum, id, r: record || null, verwijderd: !record, apparaat: APPARAAT_ID, bijgewerkt: new Date().toISOString() }])
-  }).catch(()=>{});
+  vangnetVersleutel(record || null).then(pakket =>
+    fetch(c.url.replace(/\/+$/,'') + '/rest/v1/kish_live?on_conflict=datum,id', {
+      method: 'POST',
+      headers: Object.assign({ 'Prefer': 'resolution=merge-duplicates' }, reserveHeaders(c)),
+      body: JSON.stringify([{ datum, id, r: pakket, verwijderd: !record, apparaat: APPARAAT_ID, bijgewerkt: new Date().toISOString() }])
+    })
+  ).catch(()=>{});
 }
 function supaLivePoll(){
   if(!noodKandidaat()) return;
   const c = reserveCfg();
   const sinds = window._supaPollLaatst || new Date(Date.now() - 15*60000).toISOString();
-  fetch(c.url.replace(/\/+$/,'') + '/rest/v1/kish_live?datum=eq.' + encodeURIComponent(curDate)
+  return fetch(c.url.replace(/\/+$/,'') + '/rest/v1/kish_live?datum=eq.' + encodeURIComponent(curDate)
       + '&bijgewerkt=gt.' + encodeURIComponent(sinds)
       + '&select=id,r,verwijderd,apparaat,bijgewerkt&order=bijgewerkt.asc', { headers: reserveHeaders(c) })
-  .then(r=>{ if(r.ok) window._supaBereikbaar = Date.now(); else window._supaBereikbaar = null; return r.ok ? r.json() : []; })
+  .then(r=>{ window._supaBereikbaar = r.ok ? Date.now() : null; return r.ok ? r.json() : []; })
   .then(rows=>{
-    if(!rows.length){ toonOffline(!window._verbonden); return; }
+    if(!rows.length) return null;
     window._supaPollLaatst = rows[rows.length - 1].bijgewerkt;
+    return Promise.all(rows.map(rij =>
+      (rij.verwijderd || !rij.r)
+        ? Promise.resolve(Object.assign({}, rij, { r: null }))
+        : vangnetOntsleutel(rij.r).then(r => Object.assign({}, rij, { r })).catch(()=> null)
+    ));
+  })
+  .then(rows=>{
+    if(!rows){ toonOffline(!window._verbonden); return; }
     const lijst = store.get('ct_res_' + curDate, []);
     let anders = false;
     for(const rij of rows){
-      if(rij.apparaat === APPARAAT_ID) continue; // eigen wijzigingen zitten er al in
+      if(!rij || rij.apparaat === APPARAAT_ID) continue; // eigen wijzigingen zitten er al in
       const i = lijst.findIndex(x => x && x.id === rij.id);
       if(rij.verwijderd){ if(i > -1){ lijst.splice(i, 1); anders = true; } }
       else if(rij.r){ if(i > -1) lijst[i] = rij.r; else lijst.push(rij.r); anders = true; }
@@ -3025,7 +3080,10 @@ function instBackup(){
     <label style="text-transform:none;font-size:11.5px;color:var(--muted)">Adres vangnet</label>
     <input id="rsvUrl" placeholder="https://xxxx.supabase.co" style="width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;margin:2px 0 8px" autocomplete="off">
     <label style="text-transform:none;font-size:11.5px;color:var(--muted)">Toegangssleutel</label>
-    <input id="rsvKey" placeholder="eyJ..." style="width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;margin:2px 0 10px" autocomplete="off">
+    <input id="rsvKey" placeholder="eyJ..." style="width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;margin:2px 0 8px" autocomplete="off">
+    <label style="text-transform:none;font-size:11.5px;color:var(--muted)">Wachtwoord versleuteling</label>
+    <input id="rsvWw" type="password" placeholder="op elk apparaat hetzelfde" style="width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;margin:2px 0 4px" autocomplete="off">
+    <div class="instSub" style="margin:0 0 10px;font-size:11.5px">Hiermee wordt de kopie onleesbaar gemaakt. Zonder dit wachtwoord is een teruggezette kopie niet te lezen, dus bewaar het goed.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px">
       <button class="btn primary" id="rsvOpslaan">Opslaan &amp; aanzetten</button>
       <button class="btn ghost" id="rsvNu">Nu kopie maken</button>
@@ -3067,15 +3125,19 @@ function instBackup(){
   const rsvCfg = reserveCfg();
   pg.querySelector('#rsvUrl').value = rsvCfg.url || '';
   pg.querySelector('#rsvKey').value = rsvCfg.key || '';
+  pg.querySelector('#rsvWw').value = rsvCfg.ww || '';
   const rsvStatusEl = pg.querySelector('#rsvStatus');
   const rsvToonStatus = ()=>{
     if(!reserveKlaar()){ rsvStatusEl.innerHTML = 'Status: <b style="color:var(--muted)">uit</b>'; return; }
     const l = window._reserveLaatst;
     if(!l){ rsvStatusEl.innerHTML = 'Status: <b style="color:#22c08a">aan</b> &middot; nog geen kopie gemaakt deze sessie'; return; }
     const tijd = new Date(l.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+    const slot = (reserveCfg().ww || '').trim()
+      ? ' &middot; <b style="color:#22c08a">versleuteld</b>'
+      : ' &middot; <b style="color:#f0b429">niet versleuteld</b>';
     rsvStatusEl.innerHTML = l.ok
-      ? 'Status: <b style="color:#22c08a">aan</b> &middot; laatste kopie ' + tijd + ' gelukt'
-      : 'Status: <b style="color:#e5304d">fout bij laatste kopie (' + tijd + ')</b> &middot; controleer URL en sleutel';
+      ? 'Status: <b style="color:#22c08a">aan</b> &middot; laatste kopie ' + tijd + ' gelukt' + slot
+      : 'Status: <b style="color:#e5304d">fout bij laatste kopie (' + tijd + ')</b> &middot; controleer adres en sleutel';
   };
   rsvToonStatus();
   const rsvUitBtn = pg.querySelector('#rsvUit');
@@ -3085,7 +3147,13 @@ function instBackup(){
     const key = pg.querySelector('#rsvKey').value.trim();
     if(!/^https:\/\/.+supabase\.co\/?$/.test(url)){ toast('Vul het adres van het vangnet in'); return; }
     if(key.length < 30){ toast('Dat lijkt geen geldige toegangssleutel'); return; }
-    store.set('ct_reserve', { url, key, aan:true });
+    const ww = pg.querySelector('#rsvWw').value.trim();
+    if(ww && ww.length < 8){ toast('Kies een wachtwoord van minstens 8 tekens'); return; }
+    const oudeWw = (reserveCfg().ww || '').trim();
+    if(oudeWw && ww && ww !== oudeWw && !confirm('Je wijzigt het wachtwoord. Oudere kopieen zijn daarna alleen nog met het oude wachtwoord te lezen. Doorgaan?')) return;
+    store.set('ct_reserve', { url, key, ww, aan:true });
+    window._vnKey = null; window._vnKeyVoor = null;
+    if(!ww) toast('Let op: zonder wachtwoord staat de kopie onversleuteld');
     toast('Vangnet aan, testkopie wordt gemaakt...', 'groen');
     reserveSnapshot(true).then(ok=>{ rsvToonStatus(); rsvUitBtn.style.display=''; pg.querySelector('#rsvKort').textContent = 'aan'; toast(ok ? 'Testkopie gelukt' : 'Testkopie mislukt, controleer adres en sleutel', ok ? 'groen' : undefined); });
   };
