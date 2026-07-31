@@ -45,7 +45,7 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 #sideRail button.on{color:#fff;background:var(--panel2)}
 #sideRail button.on::before{content:'';position:absolute;left:0;top:9px;bottom:9px;width:3px;background:var(--accent);border-radius:0 3px 3px 0}
 .railSpacer{flex:1}
-@media (min-width:1000px){
+@media (min-width:768px){
   #sideRail{display:flex;top:calc(60px + env(safe-area-inset-top));z-index:30}#btnMenu{display:none}
   body{padding-left:54px}
   #topbar{margin-left:-54px;padding-left:14px}
@@ -62,7 +62,7 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 #brand{display:none;align-items:center;gap:9px;margin:0 6px 0 4px}
 .brandIcon{width:28px;height:28px;border-radius:7px;background:#fff;color:var(--accent);font-weight:900;font-size:18px;display:inline-flex;align-items:center;justify-content:center;font-family:Arial,sans-serif}
 .brandTxt{color:#fff;font-weight:900;font-size:17px;letter-spacing:.22em}
-@media (min-width:1000px){ #brand{display:flex} }
+@media (min-width:768px){ #brand{display:flex} }
 #drawer .head .logo{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:900;letter-spacing:.2em}
 #drawer .head .logo .brandIcon{background:var(--accent);color:#fff}
 
@@ -192,7 +192,7 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
   body{transition:padding-left .22s ease}
   #railMenu svg{transition:transform .22s ease}
 }
-@media (min-width:1000px){
+@media (min-width:768px){
   body.railOpen{padding-left:230px}
   body.railOpen #topbar{margin-left:-230px}
   body.railOpen #sideRail{width:230px;align-items:stretch}
@@ -292,7 +292,7 @@ body.themaHu #sideRail button.on svg,body.themaHu #sideRail button.on{color:#6dc
 #sideRail{padding-top:calc(10px + env(safe-area-inset-top))}
 
 /* Mobiel: gestapelde rij zoals DISH, tellerbalk compact */
-@media (max-width:640px){
+@media (max-width:767px){
   #countbar .nums{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #countbar .nums b{font-size:13px}
   .card{flex-wrap:wrap;row-gap:5px;column-gap:10px}
@@ -379,7 +379,7 @@ body.themaHu #sideRail button.on svg,body.themaHu #sideRail button.on{color:#6dc
 #zoekWrap{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 10px;color:var(--muted);margin-left:auto;margin-right:8px}
 #zoekWrap input{background:none;border:none;padding:0;width:130px;font-size:13.5px;color:var(--txt);outline:none;min-height:auto}
 #zoekWrap button{color:var(--muted);font-size:13px;line-height:1;padding:2px}
-@media (max-width:640px){
+@media (max-width:767px){
   #zoekWrap input{width:86px}
   /* --- Mobiele opmaak: alles onder elkaar in plaats van geperst op een rij --- */
   #dateNav{position:static;transform:none;flex:1;justify-content:center}
@@ -2721,7 +2721,7 @@ const zoekWrap = document.getElementById('zoekWrap');
 if(zoekWrap && zoekInp){
   const zoekIcoon = zoekWrap.querySelector('svg');
   if(zoekIcoon) zoekIcoon.addEventListener('click', (e)=>{
-    if(window.innerWidth > 640) return; // op de PC staat hij altijd open
+    if(window.innerWidth >= 768) return; // vanaf de iPad staat hij altijd open
     e.stopPropagation();
     zoekWrap.classList.toggle('open');
     if(zoekWrap.classList.contains('open')) zoekInp.focus();
