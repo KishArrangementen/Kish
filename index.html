@@ -2931,8 +2931,23 @@ function instArchief(){
 }
 
 // ===== Extern vangnet: momentopnames naar een tweede plek, los van de hoofdsync =====
-function reserveCfg(){ return store.get('ct_reserve', { url:'', key:'', ww:'', aan:false }); }
-function reserveKlaar(){ const c = reserveCfg(); return !!(c.aan && c.url && c.key); }
+// Adres en sleutel zitten in de app, net als de instellingen van de hoofdsync.
+// Het wachtwoord staat er bewust NIET in: dat vul je een keer per apparaat in.
+const RESERVE_STANDAARD = {
+  url: 'https://wolwgierdhtsnbajhhdu.supabase.co',
+  key: 'sb_publishable_8OXlF9-BDHYOj54rmnTDcw_Enw8l4G-',
+  ww: '',
+  aan: true
+};
+function reserveCfg(){
+  const eigen = store.get('ct_reserve', null) || {};
+  const c = Object.assign({}, RESERVE_STANDAARD, eigen);
+  if(!c.url) c.url = RESERVE_STANDAARD.url;
+  if(!c.key) c.key = RESERVE_STANDAARD.key;
+  return c;
+}
+// Zonder wachtwoord doet het vangnet niets: liever geen kopie dan een leesbare kopie
+function reserveKlaar(){ const c = reserveCfg(); return !!(c.aan && c.url && c.key && (c.ww || '').trim()); }
 function reserveHeaders(c){ return { 'apikey': c.key, 'Authorization': 'Bearer ' + c.key, 'Content-Type': 'application/json' }; }
 
 // --- Versleuteling ---
@@ -3089,7 +3104,7 @@ function instBackup(){
     <div class="instSub">Kish bewaart automatisch elke 10 minuten een gedeelde kopie van vandaag (alleen als er iets gewijzigd is), plus een kopie v&oacute;&oacute;r elke PA-import. Terugzetten herstelt drankjes, statussen en tafels op alle apparaten.</div>
     <div class="instRow" id="rsvToggle" style="margin-top:6px"><b style="flex:1">Extern vangnet</b><span id="rsvKort" style="color:var(--muted);font-size:12.5px;margin-right:8px"></span><span class="instChev" id="rsvChev">&#8250;</span></div>
     <div id="rsvBlok" style="display:none">
-    <div class="instSub">Extra beveiliging: elke 5 minuten wordt de dag apart weggeschreven op een tweede plek. Valt de gewone verbinding weg, dan schakelt Kish vanzelf over zodat alle apparaten elkaar blijven zien, en weer terug zodra alles normaal is. Je hoeft hier verder niets voor te doen.</div>
+    <div class="instSub">Extra beveiliging: elke 5 minuten wordt de dag apart weggeschreven op een tweede plek. Valt de gewone verbinding weg, dan schakelt Kish vanzelf over zodat alle apparaten elkaar blijven zien, en weer terug zodra alles normaal is. Vul alleen het wachtwoord in, de rest staat al goed.</div>
     <div id="rsvStatus" class="instSub" style="padding:0 0 8px"></div>
     <label style="text-transform:none;font-size:11.5px;color:var(--muted)">Adres vangnet</label>
     <input id="rsvUrl" placeholder="https://xxxx.supabase.co" style="width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;margin:2px 0 8px" autocomplete="off">
@@ -3142,6 +3157,10 @@ function instBackup(){
   pg.querySelector('#rsvWw').value = rsvCfg.ww || '';
   const rsvStatusEl = pg.querySelector('#rsvStatus');
   const rsvToonStatus = ()=>{
+    if(!(reserveCfg().ww || '').trim()){
+      rsvStatusEl.innerHTML = 'Status: <b style="color:#f0b429">wachtwoord nog invullen</b> &middot; zolang dat leeg is wordt er niets weggeschreven';
+      return;
+    }
     if(!reserveKlaar()){ rsvStatusEl.innerHTML = 'Status: <b style="color:var(--muted)">uit</b>'; return; }
     const l = window._reserveLaatst;
     if(!l){ rsvStatusEl.innerHTML = 'Status: <b style="color:#22c08a">aan</b> &middot; nog geen kopie gemaakt deze sessie'; return; }
@@ -3157,17 +3176,16 @@ function instBackup(){
   const rsvUitBtn = pg.querySelector('#rsvUit');
   if(reserveKlaar()) rsvUitBtn.style.display = '';
   pg.querySelector('#rsvOpslaan').onclick = ()=>{
-    const url = pg.querySelector('#rsvUrl').value.trim();
-    const key = pg.querySelector('#rsvKey').value.trim();
+    const url = pg.querySelector('#rsvUrl').value.trim() || RESERVE_STANDAARD.url;
+    const key = pg.querySelector('#rsvKey').value.trim() || RESERVE_STANDAARD.key;
     if(!/^https:\/\/.+supabase\.co\/?$/.test(url)){ toast('Vul het adres van het vangnet in'); return; }
     if(key.length < 30){ toast('Dat lijkt geen geldige toegangssleutel'); return; }
     const ww = pg.querySelector('#rsvWw').value.trim();
-    if(ww && ww.length < 8){ toast('Kies een wachtwoord van minstens 8 tekens'); return; }
+    if(ww.length < 8){ toast('Vul het wachtwoord in, minstens 8 tekens'); return; }
     const oudeWw = (reserveCfg().ww || '').trim();
-    if(oudeWw && ww && ww !== oudeWw && !confirm('Je wijzigt het wachtwoord. Oudere kopieen zijn daarna alleen nog met het oude wachtwoord te lezen. Doorgaan?')) return;
+    if(oudeWw && ww !== oudeWw && !confirm('Je wijzigt het wachtwoord. Oudere kopieen zijn daarna alleen nog met het oude wachtwoord te lezen. Doorgaan?')) return;
     store.set('ct_reserve', { url, key, ww, aan:true });
     window._vnKey = null; window._vnKeyVoor = null;
-    if(!ww) toast('Let op: zonder wachtwoord staat de kopie onversleuteld');
     toast('Vangnet aan, testkopie wordt gemaakt...', 'groen');
     reserveSnapshot(true).then(ok=>{ rsvToonStatus(); rsvUitBtn.style.display=''; pg.querySelector('#rsvKort').textContent = 'aan'; toast(ok ? 'Testkopie gelukt' : 'Testkopie mislukt, controleer adres en sleutel', ok ? 'groen' : undefined); });
   };
