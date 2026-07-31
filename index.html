@@ -40,13 +40,13 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 /* Icoonbalk links (desktop) */
 #sideRail{display:none;position:fixed;left:0;top:0;bottom:0;width:54px;background:#14161d;border-right:1px solid var(--line);z-index:45;flex-direction:column;align-items:center;padding:10px 0}
 .railAvatar{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#fff;font-weight:900;font-size:17px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;flex:0 0 auto;font-family:Arial,sans-serif}
-#sideRail button{width:100%;padding:14px 0;color:#8b92a5;display:flex;justify-content:center;position:relative}
+#sideRail button{width:100%;padding:14px 0;color:#8b92a5;display:flex;justify-content:center;position:relative}#sideRail #railInst{margin-top:auto}#sideRail #railMenu{margin-bottom:4px}
 #sideRail button:active{color:#fff}
 #sideRail button.on{color:#fff;background:var(--panel2)}
 #sideRail button.on::before{content:'';position:absolute;left:0;top:9px;bottom:9px;width:3px;background:var(--accent);border-radius:0 3px 3px 0}
 .railSpacer{flex:1}
 @media (min-width:1000px){
-  #sideRail{display:flex;top:calc(60px + env(safe-area-inset-top));z-index:30}
+  #sideRail{display:flex;top:calc(60px + env(safe-area-inset-top));z-index:30}#btnMenu{display:none}
   body{padding-left:54px}
   #topbar{margin-left:-54px;padding-left:14px}
   /* Tijdlijn scrolt binnen zijn eigen vak, zodat de balk onderaan altijd zichtbaar is */
@@ -126,7 +126,7 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 .azLetter{font-size:15px;font-weight:800;color:var(--accent2);margin:16px 14px 6px}
 
 /* FABs */
-.fab{position:fixed;right:18px;width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.45);z-index:30;padding:0;line-height:1}
+.fab{position:fixed;right:18px;min-width:58px;height:54px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:9px;font-size:15px;font-weight:700;letter-spacing:.01em;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.45);z-index:30;padding:0 20px;line-height:1}.fabTxt{white-space:nowrap}@media (max-width:420px){.fab{padding:0 16px;font-size:14px;height:50px}}
 #fabAdd{bottom:20px;background:var(--accent)}
 
 /* Minikalender datumveld */
@@ -151,6 +151,56 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
   .instRow{transition:background .14s ease}
   #sideRail button,#drawer nav button{transition:background .15s ease,color .15s ease,border-color .15s ease}
 }
+
+/* Kleine bewegingen die het klikken lekkerder laten voelen */
+.btn,.paxBtn,.shSave,.shBack,.drankMenuBtn,.tafelPickBtn{position:relative;overflow:hidden}
+/* De plusknop staat vast in de hoek: alleen afknippen, positie niet aanraken */
+.fab{overflow:hidden}
+.rippel{position:absolute;border-radius:50%;background:currentColor;opacity:.26;transform:scale(0);pointer-events:none}
+@media (prefers-reduced-motion: no-preference){
+  .rippel{animation:kishRippel .5s ease-out forwards}
+  @keyframes kishRippel{to{transform:scale(1);opacity:0}}
+  /* Vinkje springt even op zodra er iets te bewaren valt */
+  .shSave.actief{animation:kishGroen .34s ease-out}
+  @keyframes kishGroen{0%{transform:scale(1)}45%{transform:scale(1.13)}100%{transform:scale(1)}}
+  /* Gekozen aantal personen veert kort aan */
+  .paxBtn.on{animation:kishKies .26s ease-out}
+  @keyframes kishKies{0%{transform:scale(.93)}60%{transform:scale(1.05)}100%{transform:scale(1)}}
+  /* Op een muisapparaat komen knoppen iets omhoog */
+  @media (hover:hover) and (pointer:fine){
+    .btn:hover,.fab:hover,.drankMenuBtn:hover{transform:translateY(-1px)}
+    .btn.primary:hover,.drankMenuBtn:hover{filter:brightness(1.07)}
+    .fab:hover{box-shadow:0 12px 26px rgba(0,0,0,.5)}
+    .tafelPickBtn:hover{border-color:var(--accent)}
+  }
+  /* Indrukken wint altijd van zweven */
+  .paxBtn:active,.btn:active,.shBack:active,.drankMenuBtn:active{transform:scale(.96)}
+  .fab:active{transform:scale(.9)}
+  .shSave:active{transform:scale(.94)}
+}
+
+
+/* Zijbalk uitklappen: hij wordt breder en de inhoud schuift mee, zoals in DISH */
+#sideRail{overflow:hidden}
+.rlTxt{display:none;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden}
+#railMenu{background:var(--accent);color:#fff;border-radius:12px;width:40px;height:40px;flex:0 0 40px;
+  padding:0;margin:0 auto 12px;box-shadow:0 4px 12px rgba(37,99,235,.45)}
+#railMenu:hover{filter:brightness(1.08)}
+@media (prefers-reduced-motion: no-preference){
+  #sideRail{transition:width .22s ease}
+  body{transition:padding-left .22s ease}
+  #railMenu svg{transition:transform .22s ease}
+}
+@media (min-width:1000px){
+  body.railOpen{padding-left:230px}
+  body.railOpen #topbar{margin-left:-230px}
+  body.railOpen #sideRail{width:230px;align-items:stretch}
+  body.railOpen .rlTxt{display:inline}
+  body.railOpen #sideRail button{justify-content:flex-start;gap:13px;padding-left:17px}
+  body.railOpen #railMenu{width:auto;height:44px;flex:0 0 44px;margin:0 14px 12px;justify-content:flex-start;padding-left:13px}
+  body.railOpen #railMenu svg{transform:rotate(180deg)}
+}
+
 @keyframes kishFade{from{opacity:0}to{opacity:1}}
 @keyframes kishPop{from{opacity:0;transform:scale(.95) translateY(6px)}to{opacity:1;transform:none}}
 @keyframes kishRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -329,12 +379,14 @@ body.themaHu #sideRail button.on svg,body.themaHu #sideRail button.on{color:#6dc
 #zoekWrap input{background:none;border:none;padding:0;width:130px;font-size:13.5px;color:var(--txt);outline:none;min-height:auto}
 #zoekWrap button{color:var(--muted);font-size:13px;line-height:1;padding:2px}
 @media (max-width:640px){ #zoekWrap input{width:86px} }
-.topChip{display:flex;justify-content:center;margin:2px 0 14px}
+.topChip{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:5px;margin:2px 0 14px}
+#topCombi{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+#topCombi .tlTag{font-size:11px;padding:3px 9px;border-radius:999px;color:#fff;font-weight:700}
 .topChip .chip{margin-left:0;font-size:11px;padding:3px 10px}
 .overboekt{display:none;color:#e5304d;font-size:11px;margin-top:5px;font-weight:600}
 .paxBtn{flex:1;padding:13px 0;border-radius:9px;background:transparent;border:1px solid #cfd3de;font-size:14px;font-weight:700;color:var(--txt)}
 .paxBtn.on{background:#fff;border-color:#fff;color:#14161d}
-.shSave{font-size:20px;padding:8px 22px;border-radius:8px;background:#3a3f4d;color:#8b92a5;font-weight:800;transition:background .15s}
+.shSave{font-size:20px;padding:8px 0;width:58px;flex:0 0 58px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#3a3f4d;color:#8b92a5;font-weight:800;transition:background .15s}
 .shSave.actief{background:var(--green);color:#fff}
 
 .ddBtn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:transparent;border:none;border-bottom:1px solid #4a5163;padding:10px 0;font-size:15px;color:var(--txt);min-height:43px}
@@ -472,7 +524,7 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
 .fMeta{text-align:center;font-size:11.5px;color:var(--muted);margin-top:12px}
 .sheetHead{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .sheetHead h2{flex:1;text-align:center;font-size:17px}
-.shBack{font-size:26px;padding:4px 14px;border-radius:8px;background:var(--panel2)}
+.shBack{font-size:26px;padding:4px 0;width:58px;flex:0 0 58px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:var(--panel2)}
 .paxRow{display:flex;gap:10px;margin-top:8px}
 .card.st-no{opacity:.55}
 .card.st-no .tnr{box-shadow:inset 0 0 0 2px var(--red)}
@@ -563,18 +615,20 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
 <body>
 
 <div id="sideRail">
-  <button data-view="dag" title="Dagoverzicht">
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h7v4H8v3H4V4zm4 4h3v3H8V8zM13 4h7v7h-4V8h-3V4zm3 4h4M4 13h4v3h3v4H4v-7zm4 3v-3M13 13h3v3h-3v-3zM17 17h3v3h-3v-3zM13 19h2v1h-2v-1zM19 13h1v2h-1v-2z"/></svg>
+  <button data-view="dag" title="PA vandaag">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rlTxt">PA vandaag</span>
   </button>
-  <button data-view="tafels" title="Tafels (tijdlijn)">
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v16"/><path d="M5 8h5M13 8h7"/><path d="M5 16h5M13 16h7"/></svg>
+  <button data-view="tafels" title="Tafels nummers op volgorde">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h8M7 12.5h10M4 18h6"/><path d="M15.5 3v18" opacity=".5"/></svg><span class="rlTxt">Tafels op volgorde</span>
   </button>
   <button data-view="az" title="Namen A-Z">
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 19c.9-3.2 3.4-5 6.5-5s5.6 1.8 6.5 5H2.5z"/><circle cx="17.2" cy="8.6" r="2.6"/><path d="M15.7 12.9c2.9.2 5 1.9 5.8 4.9h-4.1c-.3-2-1-3.6-1.7-4.9z"/></svg>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><text x="2.5" y="10.5" font-size="10.5" font-weight="700" font-family="Helvetica,Arial,sans-serif" fill="currentColor" stroke="none">A</text><text x="2.5" y="21" font-size="10.5" font-weight="700" font-family="Helvetica,Arial,sans-serif" fill="currentColor" stroke="none">Z</text><path d="M18 4.5v14M15 15.5l3 3 3-3"/></svg><span class="rlTxt">Namen A-Z</span>
   </button>
   <button data-view="map" title="Plattegrond">
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h9"/><path d="M8.5 5v14"/><path d="M17.5 4v16"/><path d="M17.5 7h3M17.5 12h3M17.5 17h3"/></svg>
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><rect x="6.2" y="7.6" width="4.2" height="3.4" rx="1"/><rect x="13.6" y="7.6" width="4.2" height="3.4" rx="1"/><rect x="6.2" y="13" width="4.2" height="3.4" rx="1"/><rect x="13.6" y="13" width="4.2" height="3.4" rx="1"/></svg><span class="rlTxt">Plattegrond</span>
   </button>
+  <button type="button" id="railInst" title="Instellingen"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M19.3 14.1a1.5 1.5 0 0 0 .3 1.7l.1.1a1.9 1.9 0 1 1-2.7 2.7l-.1-.1a1.5 1.5 0 0 0-1.7-.3 1.5 1.5 0 0 0-.9 1.4v.2a1.9 1.9 0 0 1-3.8 0v-.1a1.5 1.5 0 0 0-1-1.4 1.5 1.5 0 0 0-1.7.3l-.1.1a1.9 1.9 0 1 1-2.7-2.7l.1-.1a1.5 1.5 0 0 0 .3-1.7 1.5 1.5 0 0 0-1.4-.9h-.2a1.9 1.9 0 0 1 0-3.8h.1a1.5 1.5 0 0 0 1.4-1 1.5 1.5 0 0 0-.3-1.7l-.1-.1a1.9 1.9 0 1 1 2.7-2.7l.1.1a1.5 1.5 0 0 0 1.7.3h.1a1.5 1.5 0 0 0 .9-1.4v-.2a1.9 1.9 0 0 1 3.8 0v.1a1.5 1.5 0 0 0 .9 1.4 1.5 1.5 0 0 0 1.7-.3l.1-.1a1.9 1.9 0 1 1 2.7 2.7l-.1.1a1.5 1.5 0 0 0-.3 1.7v.1a1.5 1.5 0 0 0 1.4.9h.2a1.9 1.9 0 0 1 0 3.8h-.1a1.5 1.5 0 0 0-1.4.9z"/></svg><span class="rlTxt">Instellingen</span></button>
+  <button type="button" id="railMenu" title="Menu openen"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg><span class="rlTxt">Inklappen</span></button>
 </div>
 
 <div id="topbar">
@@ -627,7 +681,7 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
 <div id="locTabs"></div>
 <div id="content"></div>
 
-<button class="fab" id="fabAdd" title="Reservering toevoegen"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<button class="fab" id="fabAdd" title="Reservering toevoegen"><span class="fabTxt">Reservering toevoegen</span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
 
 <div id="scrim"></div>
 <div id="drawer">
@@ -636,12 +690,12 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
     <div class="who">Tafelreservering &middot; AFAS Circustheater</div>
   </div>
   <nav>
-    <button data-view="dag"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.6" cy="6" r="1.1" fill="currentColor" stroke="none"/><circle cx="3.6" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="3.6" cy="18" r="1.1" fill="currentColor" stroke="none"/></svg></span>Dagoverzicht</button>
-    <button data-view="tafels"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 5h9M8 12h13M5 19h9"/><path d="M3 3v18" opacity=".45"/></svg></span>Tafels (tijdlijn)</button>
-    <button data-view="az"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.3-3.2 4-4.8 7-4.8s5.7 1.6 7 4.8"/></svg></span>Namen A-Z</button>
-    <button data-view="map"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg></span>Plattegrond</button>
+    <button data-view="dag"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg></span>PA vandaag</button>
+    <button data-view="tafels"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h8M7 12.5h10M4 18h6"/><path d="M15.5 3v18" opacity=".5"/></svg></span>Tafels nummers op volgorde</button>
+    <button data-view="az"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><text x="2.5" y="10.5" font-size="10.5" font-weight="700" font-family="Helvetica,Arial,sans-serif" fill="currentColor" stroke="none">A</text><text x="2.5" y="21" font-size="10.5" font-weight="700" font-family="Helvetica,Arial,sans-serif" fill="currentColor" stroke="none">Z</text><path d="M18 4.5v14M15 15.5l3 3 3-3"/></svg></span>Namen A-Z</button>
+    <button data-view="map"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><rect x="6.2" y="7.6" width="4.2" height="3.4" rx="1"/><rect x="13.6" y="7.6" width="4.2" height="3.4" rx="1"/><rect x="6.2" y="13" width="4.2" height="3.4" rx="1"/><rect x="13.6" y="13" width="4.2" height="3.4" rx="1"/></svg></span>Plattegrond</button>
     <hr>
-    <button type="button" id="btnInst"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2.5v2.8M12 18.7v2.8M2.5 12h2.8M18.7 12h2.8M5.2 5.2l2 2M16.8 16.8l2 2M18.8 5.2l-2 2M7.2 16.8l-2 2"/><circle cx="12" cy="12" r="3.6"/></svg></span>Instellingen</button>
+    <button type="button" id="btnInst"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M19.3 14.1a1.5 1.5 0 0 0 .3 1.7l.1.1a1.9 1.9 0 1 1-2.7 2.7l-.1-.1a1.5 1.5 0 0 0-1.7-.3 1.5 1.5 0 0 0-.9 1.4v.2a1.9 1.9 0 0 1-3.8 0v-.1a1.5 1.5 0 0 0-1-1.4 1.5 1.5 0 0 0-1.7.3l-.1.1a1.9 1.9 0 1 1-2.7-2.7l.1-.1a1.5 1.5 0 0 0 .3-1.7 1.5 1.5 0 0 0-1.4-.9h-.2a1.9 1.9 0 0 1 0-3.8h.1a1.5 1.5 0 0 0 1.4-1 1.5 1.5 0 0 0-.3-1.7l-.1-.1a1.9 1.9 0 1 1 2.7-2.7l.1.1a1.5 1.5 0 0 0 1.7.3h.1a1.5 1.5 0 0 0 .9-1.4v-.2a1.9 1.9 0 0 1 3.8 0v.1a1.5 1.5 0 0 0 .9 1.4 1.5 1.5 0 0 0 1.7-.3l.1-.1a1.9 1.9 0 1 1 2.7 2.7l-.1.1a1.5 1.5 0 0 0-.3 1.7v.1a1.5 1.5 0 0 0 1.4.9h.2a1.9 1.9 0 0 1 0 3.8h-.1a1.5 1.5 0 0 0-1.4.9z"/></svg></span>Instellingen</button>
     <button type="button" id="btnThema"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.6-.2-1-.6-1.4-.4-.4-.6-.9-.6-1.4 0-1.1.9-2 2-2h2.4A4.8 4.8 0 0 0 21 10.5C21 6.4 17 3 12 3z"/><circle cx="7.8" cy="10.2" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="7.6" r="1.1" fill="currentColor" stroke="none"/><circle cx="16.2" cy="10.2" r="1.1" fill="currentColor" stroke="none"/></svg></span>Thema</button>
 
   </nav>
@@ -855,9 +909,20 @@ function closeDrawer(){ drawer.classList.remove('open'); scrim.classList.remove(
 document.getElementById('btnMenu').onclick = openDrawer;
 const btnInst = document.getElementById('btnInst');
 if(btnInst) btnInst.onclick = ()=>openInstellingen();
+const railInst = document.getElementById('railInst');
+if(railInst) railInst.onclick = ()=>openInstellingen();
+const railMenu = document.getElementById('railMenu');
+function zetRail(open){
+  document.body.classList.toggle('railOpen', !!open);
+  store.set('ct_rail', !!open);
+  const b = document.getElementById('railMenu');
+  if(b) b.title = open ? 'Inklappen' : 'Uitklappen';
+}
+if(railMenu) railMenu.onclick = ()=> zetRail(!document.body.classList.contains('railOpen'));
+if(store.get('ct_rail', false)) zetRail(true);
 
 // Geheim themamenu: alleen de hoofdcode, en alleen op dit apparaat
-const MENU_NL = { dag:'Dagoverzicht', tafels:'Tafels (tijdlijn)', az:'Namen A-Z', map:'Plattegrond', inst:'Instellingen', thema:'Thema', wie:'Tafelreservering \u00b7 AFAS Circustheater', vandaag:'Vandaag' };
+const MENU_NL = { dag:'PA vandaag', tafels:'Tafels nummers op volgorde', az:'Namen A-Z', map:'Plattegrond', inst:'Instellingen', thema:'Thema', wie:'Tafelreservering \u00b7 AFAS Circustheater', vandaag:'Vandaag' };
 const MENU_HU = { dag:'Napi \u00e1ttekint\u00e9s', tafels:'Asztalok (id\u0151vonal)', az:'Nevek A-Z', map:'Alaprajz', inst:'Be\u00e1ll\u00edt\u00e1sok', thema:'T\u00e9ma', wie:'Asztalfoglal\u00e1s \u00b7 AFAS Circustheater', vandaag:'Ma' };
 const TELWOORD = {
   nl: { res:'Reserveringen', taf:'Tafels', gast:'Gasten' },
@@ -2060,9 +2125,10 @@ function closeSheet(){
   document.querySelectorAll('.tbl.samen').forEach(x=>x.classList.remove('samen'));
 }
 function sheetBgTik(){
+  // Bewust NIET sluiten bij een tik ernaast: je sluit met de pijl linksboven of met opslaan.
+  // Zo raak je nooit halverwege je ingevoerde drankjes kwijt. Wel eerst het toetsenbord weg.
   const act = document.activeElement;
-  if(act && sheet.contains(act) && act.blur){ act.blur(); return; } // eerst het toetsenbord weg
-  closeSheet();
+  if(act && sheet.contains(act) && act.blur) act.blur();
 }
 
 // iPad: als het toetsenbord opent, tilt het formulier zich erboven uit
@@ -2196,7 +2262,8 @@ function nieuweResDefaults(extra){
   return Object.assign({
     naam:'', pax:2, tijd:t, duur:slimmeDuur(t),
     loc: curLoc==='__alles' ? 'Theaterrestaurant' : curLoc,
-    tafels:[], arr:'Normaal', notitie:'', status:'res', walkin:false
+    tafels:[], arr:'Normaal', notitie:'', status:'res', walkin:false,
+    verkocht: true
   }, extra || {});
 }
 
@@ -2212,7 +2279,7 @@ function openForm(existing, walkin){
       <h2>${existing?'Reservering':(walkin?'Walk-in':'Reservering')}</h2>
       <button class="shSave" id="fSave">&#10003;</button>
     </div>
-    <div class="topChip"><span class="chip" id="topChip" style="background:${arrKleur(r.arr)}">${esc(r.arr)}</span></div>
+    <div class="topChip"><span class="chip" id="topChip" style="background:${arrKleur(r.arr)}">${esc(r.arr)}</span><span id="topCombi">${r.arr==='Combi'?combiTags(r):''}</span></div>
     <label>Aantal personen</label>
     <div class="paxRow">${[1,2,3,4,5].map(paxBtn).join('')}<button class="paxBtn ${meer?'on':''}" data-p="meer">MEER</button></div>
     <input id="fPax" type="number" min="1" value="${r.pax}" style="display:none">
@@ -2273,7 +2340,7 @@ function openForm(existing, walkin){
         meerBtn.classList.add('on');
         meerBtn.textContent = bt.dataset.n;
         ov.remove();
-        paxInput.dispatchEvent(new Event('change'));
+        paxInput.dispatchEvent(new Event('change', { bubbles: true }));
       };
     });
   }
@@ -2284,7 +2351,7 @@ function openForm(existing, walkin){
       b.classList.add('on');
       meerBtn.textContent = 'MEER';
       paxInput.value = b.dataset.p;
-      paxInput.dispatchEvent(new Event('change'));
+      paxInput.dispatchEvent(new Event('change', { bubbles: true }));
     };
   });
 
@@ -2317,10 +2384,15 @@ function openForm(existing, walkin){
   let selCombi = Object.assign({}, r.combi || {});
   const combiWrap = sheet.querySelector('#fCombiWrap');
   const combiBtn = sheet.querySelector('#fCombiBtn');
+  function toonTopCombi(aan){
+    const el = sheet.querySelector('#topCombi');
+    if(el) el.innerHTML = aan ? combiTags({ combi: selCombi }) : '';
+  }
   function updateCombiBtn(){
     const t = Object.entries(selCombi).filter(([,n])=>n>0).map(([k,n])=>n+'x '+k).join(', ');
     combiBtn.textContent = t || 'Kies arrangementen';
     combiBtn.style.color = t ? '' : 'var(--muted)';
+    toonTopCombi(sheet.querySelector('#fArr').value === 'Combi');
   }
   updateCombiBtn();
   const openCombiPop = ()=> aantalPop(combiBtn, 'Samenstelling combi (aantal per arrangement)', COMBI_OPTIES(), selCombi, ()=>{ updateCombiBtn(); markeer(); });
@@ -2447,6 +2519,7 @@ function openForm(existing, walkin){
     auto.onchange = ()=>{
       if(auto.checked){
         selTafels.clear();
+        markeer();
         pop.querySelectorAll('input[value]').forEach(cb=>cb.checked=false);
       } else auto.checked = selTafels.size===0;
       updateTafelBtn();
@@ -2454,6 +2527,7 @@ function openForm(existing, walkin){
     pop.querySelectorAll('input[value]').forEach(cb=>{
       cb.onchange = ()=>{
         cb.checked ? selTafels.add(cb.value) : selTafels.delete(cb.value);
+        markeer();
         auto.checked = selTafels.size===0;
         updateTafelBtn();
       };
@@ -2461,7 +2535,7 @@ function openForm(existing, walkin){
     ov.onclick = (e)=>{ if(e.target===ov) ov.remove(); };
   }
   tafelBtn.onclick = openTafelPop;
-  locSel.onchange = ()=>{ selTafels.clear(); updateTafelBtn(); };
+  locSel.onchange = ()=>{ selTafels.clear(); updateTafelBtn(); markeer(); };
   updateTafelBtn();
 
   // Donkere dropdowns voor Zaal, Status en Label
@@ -2476,6 +2550,7 @@ function openForm(existing, walkin){
     chip.style.background = arrKleur(e.target.value);
     const isCombi = e.target.value === 'Combi';
     combiWrap.style.display = isCombi ? 'block' : 'none';
+    toonTopCombi(isCombi);
     if(isCombi) openCombiPop();
   });
   // Vink wordt groen zodra er iets gewijzigd is
@@ -2693,7 +2768,7 @@ function maakDropdown(sel){
     menu.querySelectorAll('button').forEach(bt=>{
       bt.onclick = ()=>{
         sel.value = bt.dataset.v;
-        sel.dispatchEvent(new Event('change'));
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
         ov.remove();
       };
     });
@@ -3422,7 +3497,7 @@ function openMiniCal(input){
         input.dataset.iso = el.dataset.d;
         input.value = fmtLang(el.dataset.d);
         ov.remove();
-        input.dispatchEvent(new Event('change'));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
       };
     });
   }
@@ -3525,7 +3600,7 @@ function openClock(input){
   ov.querySelector('#ckOk').onclick = ()=>{
     input.value = pad(h)+':'+pad(m);
     ov.remove();
-    input.dispatchEvent(new Event('change'));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
   };
   head(); drawDial();
 }
@@ -4349,6 +4424,26 @@ function autoNietGemeld(){
 }
 setInterval(autoNietGemeld, 60000);
 setTimeout(autoNietGemeld, 3000);
+
+
+// Rimpeling onder de vinger bij het indrukken van een knop
+document.addEventListener('pointerdown', (e)=>{
+  try{
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const b = e.target && e.target.closest && e.target.closest('.btn,.paxBtn,.fab,.shSave,.shBack,.drankMenuBtn,.tafelPickBtn');
+    if(!b || b.disabled) return;
+    const r = b.getBoundingClientRect();
+    if(!r.width) return;
+    const d = Math.max(r.width, r.height) * 1.15;
+    const s = document.createElement('span');
+    s.className = 'rippel';
+    s.style.width = s.style.height = d + 'px';
+    s.style.left = ((e.clientX - r.left) - d/2) + 'px';
+    s.style.top  = ((e.clientY - r.top) - d/2) + 'px';
+    b.appendChild(s);
+    setTimeout(()=>{ if(s.parentNode) s.remove(); }, 600);
+  }catch(err){}
+}, true);
 
 render();
 startSync();
