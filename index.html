@@ -63,6 +63,16 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 .brandIcon{width:28px;height:28px;border-radius:7px;background:#fff;color:var(--accent);font-weight:900;font-size:18px;display:inline-flex;align-items:center;justify-content:center;font-family:Arial,sans-serif}
 .brandTxt{color:#fff;font-weight:900;font-size:17px;letter-spacing:.22em}
 @media (min-width:768px){ #brand{display:flex} }
+@media (min-width:768px){
+  /* iPad: de tellingen vullen de ruimte, zoekbalk en iconen netjes rechts ertegenaan */
+  #countbar{gap:10px}
+  #countbar .nums{flex:1}
+  #zoekWrap{margin:0;max-width:230px}
+  #zoekWrap input{width:130px}
+  #countbar .cbTools{display:flex;gap:4px}
+  .fab{height:46px;padding:0 16px;font-size:13.5px;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+  #fabAdd{bottom:16px;right:16px}
+}
 #drawer .head .logo{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:900;letter-spacing:.2em}
 #drawer .head .logo .brandIcon{background:var(--accent);color:#fff}
 
@@ -376,7 +386,7 @@ body.themaHu #sideRail button.on svg,body.themaHu #sideRail button.on{color:#6dc
 .vkRow .vkSwitch::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .18s}
 .vkRow input:checked + .vkSwitch{background:#8b5cf6}
 .vkRow input:checked + .vkSwitch::after{left:21px}
-#zoekWrap{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 10px;color:var(--muted);margin-left:auto;margin-right:8px}
+#zoekWrap{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:6px 10px;color:var(--muted);margin-left:auto;margin-right:0}
 #zoekWrap input{background:none;border:none;padding:0;width:130px;font-size:13.5px;color:var(--txt);outline:none;min-height:auto}
 #zoekWrap button{color:var(--muted);font-size:13px;line-height:1;padding:2px}
 @media (max-width:767px){
