@@ -249,6 +249,43 @@ body.themaHu #brand::after{content:' \1F1ED\1F1FA'}
 body.themaHu #sideRail button.on{border-left-color:#477050}
 body.themaHu #sideRail button.on svg,body.themaHu #sideRail button.on{color:#6dc493}
 
+/* Als het Hongaarse thema aanstaat, alles rood maken, ook als het blauwe thema actief was */
+body.themaHu.themaGlas{
+  background:
+    radial-gradient(55% 45% at 18% 8%, rgba(180,40,50,.3), transparent 70%),
+    radial-gradient(50% 50% at 88% 88%, rgba(150,30,40,.22), transparent 70%),
+    linear-gradient(150deg,#160709 0%,#1a0a0c 45%,#200a0e 100%);
+}
+body.themaHu.themaGlas::before{background:radial-gradient(circle,rgba(206,41,57,.3),transparent 70%)}
+body.themaHu.themaGlas::after{background:radial-gradient(circle,rgba(180,40,50,.26),transparent 70%)}
+body.themaHu.themaGlas #topbar{background:linear-gradient(180deg,rgba(206,41,57,.42),rgba(206,41,57,.26))}
+body.themaHu.themaGlas .card{background:rgba(42,14,18,.72)}
+body.themaHu.themaGlas #sideRail{background:rgba(30,8,12,.78)}
+body.themaHu.themaGlas #drawer{background:rgba(30,8,12,.9)}
+body.themaHu.themaGlas #sideRail button.on{background:linear-gradient(180deg,rgba(206,41,57,.28),rgba(180,30,40,.18));box-shadow:inset 3px 0 0 var(--accent)}
+body.themaHu.themaGlas #sideRail button.on svg{color:#ff8a95}
+body.themaHu.themaGlas .drankKop{background:linear-gradient(180deg,rgba(206,41,57,.32),rgba(206,41,57,.18))}
+body.themaHu.themaGlas .drankVoet{background:linear-gradient(0deg,rgba(206,41,57,.28),rgba(206,41,57,.14))}
+body.themaHu.themaGlas #drankOv{background:radial-gradient(60% 50% at 20% 10%, rgba(180,40,50,.28), transparent 70%),linear-gradient(160deg,#160709,#200a0e)}
+body.themaHu.themaGlas #fabAdd,body.themaHu.themaGlas .btn.primary,body.themaHu.themaGlas .drankMenuBtn{background:linear-gradient(180deg,rgba(206,41,57,.6),rgba(206,41,57,.4))}
+body.themaHu.themaGlas.railOpen #railMenu{background:linear-gradient(180deg,rgba(206,41,57,.6),rgba(206,41,57,.4))}
+body.themaHu.themaGlas .drankTabs button.on,body.themaHu.themaGlas #locTabs button.on{background:linear-gradient(180deg,rgba(206,41,57,.9),rgba(180,30,40,.7));box-shadow:0 2px 12px rgba(206,41,57,.5)}
+body.themaHu.themaGlas .tlBlock.verwacht{background:rgba(120,45,50,.72)}
+body.themaHu.themaGlas .sectionH span{background:rgba(206,41,57,.22);border-color:rgba(255,120,130,.4)}
+body.themaHu.themaGlas #countbar{background:rgba(30,10,14,.5);border-bottom:1px solid rgba(255,120,130,.14)}
+body.themaHu.themaGlas #sheet{background:rgba(38,12,16,.9);border:1px solid rgba(255,120,130,.2)}
+body.themaHu.themaGlas .stMenu,body.themaHu.themaGlas .tafelPop,body.themaHu.themaGlas .vraagBox,body.themaHu.themaGlas .loginBox,body.themaHu.themaGlas #drankOv .dkPaneel{background:rgba(40,14,18,.92);border:1px solid rgba(255,120,130,.2)}
+body.themaHu.themaGlas .drankTegel{background:linear-gradient(160deg,rgba(70,24,30,.55),rgba(42,16,20,.6));border:1px solid rgba(220,140,150,.2)}
+body.themaHu.themaGlas .dkTelBadge{background:linear-gradient(180deg,#e5556a,#ce2939)}
+body.themaHu.themaGlas .drankKop .btn.ghost{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)}
+body.themaHu.themaGlas #filterbar,body.themaHu.themaGlas #locTabs{background:rgba(30,10,14,.5);border-bottom:1px solid rgba(255,120,130,.14)}
+body.themaHu.themaGlas input,body.themaHu.themaGlas select,body.themaHu.themaGlas textarea{background:rgba(48,18,22,.6);border:1px solid rgba(220,140,150,.2)}
+body.themaHu.themaGlas .tlLabel{background:rgba(38,12,16,.72)}
+body.themaHu.themaGlas .tlHead{background:#1a0a0c}
+body.themaHu.themaGlas .tlHead .tlLabel{background:#200a0e}
+body.themaHu.themaGlas .drankTabs button,body.themaHu.themaGlas #locTabs button{background:rgba(56,20,26,.5);border:1px solid rgba(220,140,150,.18);color:#e6b8be}
+body.themaHu.themaGlas #drawer nav button.on{background:linear-gradient(90deg,rgba(206,41,57,.26),rgba(180,30,40,.12));box-shadow:inset 3px 0 0 var(--accent)}
+
 /* ===== Blauw-thema: alleen een schone blauwe achtergrond, panelen blijven zoals altijd ===== */
 body.themaGlas{
   background:
@@ -1137,7 +1174,7 @@ if(btnInst) btnInst.onclick = ()=>openInstellingen();
 const railInst = document.getElementById('railInst');
 if(railInst) railInst.onclick = ()=>openInstellingen();
 const railThema = document.getElementById('railThema');
-if(railThema) railThema.onclick = openThema;
+if(railThema) railThema.onclick = ()=>vraagPin(()=>openThema(), 'thema');
 const railMenu = document.getElementById('railMenu');
 function zetRail(open){
   document.body.classList.toggle('railOpen', !!open);
@@ -2494,6 +2531,46 @@ function nieuweResDefaults(extra){
   }, extra || {});
 }
 
+const FORM_HU = {
+  'Aantal personen':'Szem\u00e9lyek sz\u00e1ma',
+  'Datum':'D\u00e1tum',
+  'Begin':'Kezd\u00e9s',
+  'Einde':'V\u00e9ge',
+  'Zaal':'Terem',
+  'Tafel':'Asztal',
+  'Naam':'N\u00e9v',
+  'Status':'\u00c1llapot',
+  'Label':'C\u00edmke',
+  'Samenstelling combi':'Kombin\u00e1ci\u00f3 \u00f6ssze\u00e1ll\u00edt\u00e1sa',
+  'Allergenen':'Allerg\u00e9nek',
+  'Bijzonderheden':'Megjegyz\u00e9sek',
+  'Kies via menu':'V\u00e1laszt\u00e1s men\u00fcb\u0151l',
+  'Extra verkocht arrangement':'Extra eladott csomag',
+  'Tafel is overgeboekt':'Az asztal t\u00fal van foglalva',
+  'Drankkeuze gasten':'Vend\u00e9gek italv\u00e1laszt\u00e1sa',
+  'Definitief verwijderen':'V\u00e9gleges t\u00f6rl\u00e9s',
+  'MEER':'T\u00d6BB',
+  'Reservering':'Asztalfoglal\u00e1s',
+  'Walk-in':'Bes\u00e9t\u00e1l\u00f3'
+};
+function vertaalFormulier(root){
+  if(!document.body.classList.contains('themaHu')) return;
+  // labels, knoppen, spans en de titel vertalen op basis van hun exacte tekst
+  root.querySelectorAll('label,button,h2,span,legend,option').forEach(el=>{
+    // alleen bladeren met pure tekst aanraken, niet elementen met kinderen die zelf tekst dragen
+    for(const node of el.childNodes){
+      if(node.nodeType === 3){
+        const t = node.nodeValue.trim();
+        if(t && FORM_HU[t]) node.nodeValue = node.nodeValue.replace(t, FORM_HU[t]);
+      }
+    }
+  });
+  // placeholders
+  root.querySelectorAll('[placeholder]').forEach(el=>{
+    const p = el.getAttribute('placeholder').trim();
+    if(FORM_HU[p]) el.setAttribute('placeholder', FORM_HU[p]);
+  });
+}
 function openForm(existing, walkin){
   const r = existing || nieuweResDefaults({ naam: walkin?'Walk-in':'', status: walkin?'in':'res', walkin: !!walkin });
   const eind = minNaarTijd(tijdNaarMin(r.tijd)+(r.duur||90));
@@ -2769,6 +2846,7 @@ function openForm(existing, walkin){
   maakDropdown(sheet.querySelector('#fLoc'));
   maakDropdown(sheet.querySelector('#fStatus'));
   maakDropdown(sheet.querySelector('#fArr'));
+  vertaalFormulier(sheet);
 
   // Labelchip bovenin volgt de keuze
   sheet.querySelector('#fArr').addEventListener('change', (e)=>{
@@ -3684,9 +3762,10 @@ function instManagers(){
 function vraagPin(cb, alleenHoofd){
   const ov = document.createElement('div');
   ov.className = 'mcalOv';
+  const isThema = alleenHoofd === 'thema';
   ov.innerHTML = `<div class="vraagBox" style="text-align:center">
-    <p style="margin-bottom:4px"><b>Managercode</b></p>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:12px">Voer de code in om te verwijderen</p>
+    <p style="margin-bottom:4px"><b>${isThema ? 'Kata-code' : 'Managercode'}</b></p>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:12px">${isThema ? 'Voer de geheime code in' : 'Voer de code in om te verwijderen'}</p>
     <input id="pinVeld" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"
       style="width:100%;text-align:center;font-size:26px;letter-spacing:12px;background:var(--panel2,#1d2029);border:1px solid var(--line,#3a3f4d);border-radius:10px;padding:12px;color:inherit;outline:none">
     <div id="pinFout" style="color:#e5304d;font-size:13px;min-height:18px;margin-top:8px"></div>
@@ -3702,7 +3781,7 @@ function vraagPin(cb, alleenHoofd){
   const check = ()=>{
     const code = veld.value.trim();
     const themaOk = alleenHoofd === 'thema' && code === KATA_CODE;
-    if((alleenHoofd ? (code === MANAGER_PIN || themaOk) : geldigePin(code))){ ov.remove(); cb(); }
+    if((alleenHoofd === 'thema') ? themaOk : (alleenHoofd ? (code === MANAGER_PIN) : geldigePin(code))){ ov.remove(); cb(); }
     else{
       fout.textContent = 'Onjuiste code';
       veld.value = '';
