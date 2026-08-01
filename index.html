@@ -40,7 +40,7 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 /* Icoonbalk links (desktop) */
 #sideRail{display:none;position:fixed;left:0;top:0;bottom:0;width:54px;background:#14161d;border-right:1px solid var(--line);z-index:45;flex-direction:column;align-items:center;padding:10px 0}
 .railAvatar{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#fff;font-weight:900;font-size:17px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;flex:0 0 auto;font-family:Arial,sans-serif}
-#sideRail button{width:100%;padding:14px 0;color:#8b92a5;display:flex;align-items:center;justify-content:center;position:relative}#sideRail #railInst{margin-top:auto}#sideRail #railMenu{margin-bottom:4px}
+#sideRail button{width:100%;padding:14px 0;color:#8b92a5;display:flex;align-items:center;justify-content:center;position:relative}#sideRail #railThema{margin-top:auto}#sideRail #railMenu{margin-bottom:4px}
 #sideRail button:active{color:#fff}
 #sideRail button.on{color:#fff;background:var(--panel2)}
 #sideRail button.on::before{content:'';position:absolute;left:0;top:9px;bottom:9px;width:3px;background:var(--accent);border-radius:0 3px 3px 0}
@@ -96,8 +96,10 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 #countbar .ic:active{background:var(--panel2);transform:scale(.94)}
 #countbar .ic.actief{color:#fff;background:var(--accent)}
 #countbar #btnWisPA{color:#e5484d}
-#filterbar{display:flex;gap:10px;align-items:flex-end;padding:10px 16px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-#filterbar[hidden]{display:none}
+#filterbar{display:grid;grid-template-rows:1fr;transition:grid-template-rows .28s ease,opacity .28s ease,padding .28s ease;opacity:1}
+#filterbar>*{min-width:0}
+#filterInner{display:flex;gap:10px;align-items:flex-end;padding:10px 16px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;overflow:hidden}
+#filterbar.dicht{grid-template-rows:0fr;opacity:0;pointer-events:none}
 .fltGroup label{margin:0 0 4px;font-size:10.5px}
 .fltGroup input,.fltGroup select{padding:7px 9px;font-size:13.5px;width:auto;min-width:86px}
 .fltGroup.grow{flex:1;min-width:120px}
@@ -108,8 +110,11 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 /* View tabs (locaties) */
 #locTabs{display:flex;gap:8px;padding:10px 16px;overflow-x:auto;border-bottom:1px solid var(--line)}
 #locTabs:empty{display:none}
-#locTabs button{white-space:nowrap;padding:8px 14px;border-radius:20px;background:var(--panel2);font-size:13px;font-weight:600;color:var(--muted)}
-#locTabs button.on{background:var(--accent);color:#fff}
+#locTabs{scrollbar-width:none}
+#locTabs::-webkit-scrollbar{display:none}
+#locTabs button{white-space:nowrap;padding:8px 16px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-size:13px;font-weight:700;color:var(--muted);transition:all .16s ease}
+#locTabs button:hover{color:var(--txt);border-color:var(--accent)}
+#locTabs button.on{background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 80%,#000));border-color:transparent;color:#fff;box-shadow:0 2px 10px color-mix(in srgb,var(--accent) 50%,transparent)}
 
 /* Content */
 #content{padding:0 0 140px}
@@ -131,7 +136,7 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 .vrijRow{display:flex;gap:12px;align-items:center;padding:7px 14px;color:var(--muted);font-size:13px;border-left:3px solid var(--line);margin:0 0 6px 6px}
 .vrijRow b{min-width:44px;font-size:14px;color:var(--txt);opacity:.55}
 
-.sectionH{background:#000;color:#fff;font-size:14px;font-weight:800;padding:6px 14px;margin:14px 0 0}
+.sectionH{color:var(--txt);font-size:13px;font-weight:800;letter-spacing:.04em;padding:0 16px;margin:22px 0 16px;display:flex;align-items:center;gap:12px}.sectionH span{display:inline-flex;align-items:center;gap:7px;background:color-mix(in srgb,var(--accent) 18%,var(--panel2));border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);color:var(--txt);padding:5px 13px;border-radius:999px;font-size:13.5px}.sectionH span::before{content:'';width:13px;height:13px;border-radius:50%;border:2px solid var(--accent);box-shadow:inset 0 -4px 0 -2px var(--accent)}.sectionH::after{content:'';flex:1;height:1px;background:var(--line)}
 .sectionH:first-child{margin-top:0}
 .azLetter{font-size:15px;font-weight:800;color:var(--accent2);margin:16px 14px 6px}
 
@@ -163,7 +168,8 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
 }
 
 /* Kleine bewegingen die het klikken lekkerder laten voelen */
-.btn,.paxBtn,.shSave,.shBack,.drankMenuBtn,.tafelPickBtn{position:relative;overflow:hidden}
+.btn,.paxBtn,.shSave,.shBack,.drankMenuBtn,.tafelPickBtn,.drankTabs button{position:relative;overflow:hidden}
+.drankTegel{position:relative}
 /* De plusknop staat vast in de hoek: alleen afknippen, positie niet aanraken */
 .fab{overflow:hidden}
 .rippel{position:absolute;border-radius:50%;background:currentColor;opacity:.26;transform:scale(0);pointer-events:none}
@@ -176,6 +182,18 @@ label{font-size:12px;color:var(--muted);display:block;margin:12px 0 5px;font-wei
   /* Gekozen aantal personen veert kort aan */
   .paxBtn.on{animation:kishKies .26s ease-out}
   @keyframes kishKies{0%{transform:scale(.93)}60%{transform:scale(1.05)}100%{transform:scale(1)}}
+  /* Reserveringskaarten drukken subtiel in bij aanraken */
+  .card{transition:transform .1s ease,background .12s ease}
+  .card:active{transform:scale(.992)}
+  /* Plus/min op drankje veren op als ze verschijnen */
+  .dkTelBadge{animation:kishPop .2s ease-out}
+  .dkMin{animation:kishPop .2s ease-out}
+  /* Tijd-pil komt zacht binnen */
+  .sectionH span{animation:kishPop .25s ease-out}
+  /* Tafelkiezer-knop reageert */
+  .tafelPickBtn{transition:border-color .14s ease,background .14s ease}
+  /* Chips verschijnen zacht */
+  .chip{transition:transform .1s ease}
   /* Op een muisapparaat komen knoppen iets omhoog */
   @media (hover:hover) and (pointer:fine){
     .btn:hover,.fab:hover,.drankMenuBtn:hover{transform:translateY(-1px)}
@@ -231,22 +249,181 @@ body.themaHu #brand::after{content:' \1F1ED\1F1FA'}
 body.themaHu #sideRail button.on{border-left-color:#477050}
 body.themaHu #sideRail button.on svg,body.themaHu #sideRail button.on{color:#6dc493}
 
+/* ===== Blauw-thema: alleen een schone blauwe achtergrond, panelen blijven zoals altijd ===== */
+body.themaGlas{
+  background:
+    radial-gradient(55% 45% at 18% 8%, rgba(40,90,180,.30), transparent 70%),
+    radial-gradient(50% 50% at 88% 88%, rgba(20,110,120,.22), transparent 70%),
+    linear-gradient(150deg,#070c16 0%,#0a1220 45%,#0a1424 100%);
+  background-attachment:fixed;
+}
+body.themaGlas::before,body.themaGlas::after{content:'';position:fixed;border-radius:50%;filter:blur(12px);z-index:-1;pointer-events:none}
+body.themaGlas::before{width:280px;height:280px;top:60px;right:6%;background:radial-gradient(circle,rgba(50,110,210,.26),transparent 70%)}
+body.themaGlas::after{width:220px;height:220px;bottom:80px;left:5%;background:radial-gradient(circle,rgba(20,140,150,.22),transparent 70%)}
+/* Reserveringskaarten laten de blauwe achtergrond doorschemeren */
+body.themaGlas .card{
+  background:rgba(12,22,42,.72);
+  border:1px solid rgba(120,150,200,.18);
+  border-radius:14px;
+  margin:0 12px 10px;
+  backdrop-filter:blur(10px) saturate(130%);-webkit-backdrop-filter:blur(10px) saturate(130%);
+  box-shadow:0 4px 16px rgba(0,0,0,.22)
+}
+body.themaGlas .card:active{background:rgba(24,40,72,.75)}
+/* wat lucht boven de eerste kaart */
+body.themaGlas #content{padding-top:10px}
+/* Tijdlijn: tafelnummer-kolom en urenbalk mee in het blauw */
+body.themaGlas .tlLabel{background:rgba(14,24,42,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-right:1px solid rgba(120,150,200,.16)}
+body.themaGlas .tlHead{background:#0b1526}
+/* De hoekcel linksboven vast en dekkend, zodat het eerste uur er niet achter verdwijnt */
+.tlHead .tlLabel{position:sticky;left:0;z-index:2;background:var(--bg)}
+body.themaGlas .tlHead .tlLabel{background:#0d1524}
+body.themaGlas .tlHours{border-bottom:1px solid rgba(120,150,200,.22);background:#0b1526}
+body.themaGlas .tlHour{color:#dce8fa}
+body.themaGlas .tlHour::after{background:rgba(120,150,200,.35)}
+body.themaGlas .tlGrid{background:rgba(120,150,200,.28)}
+body.themaGlas .tlGrid.q{background:rgba(120,150,200,.14)}
+body.themaGlas .tlLocRow{color:#cdddf5}
+body.themaGlas .tlRow{border-top:1px solid rgba(120,150,200,.1)}
+/* Reserveringsformulier en losse menu's als glaspaneel */
+body.themaGlas #sheet{
+  background:rgba(16,26,46,.9);
+  backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%);
+  border:1px solid rgba(120,150,200,.2)
+}
+body.themaGlas .stMenu,body.themaGlas .tafelPop,body.themaGlas .vraagBox,body.themaGlas .loginBox,body.themaGlas #drankOv .dkPaneel{
+  background:rgba(18,28,50,.92);
+  backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);
+  border:1px solid rgba(120,150,200,.2)
+}
+/* Drankjes-tegels doorschijnend */
+/* Drankmenu in blauw thema: fraaiere glazen tegels */
+body.themaGlas #drankOv{
+  background:
+    radial-gradient(60% 50% at 20% 10%, rgba(40,90,180,.28), transparent 70%),
+    linear-gradient(160deg,#070c16,#0a1424)
+}
+body.themaGlas .dkPaneel{background:rgba(12,20,38,.72)}
+body.themaGlas .drankTegel{
+  background:linear-gradient(160deg,rgba(30,48,84,.55),rgba(16,26,48,.6));
+  border:1px solid rgba(140,170,220,.2);
+  box-shadow:0 4px 14px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.08);
+  backdrop-filter:blur(8px) saturate(130%);-webkit-backdrop-filter:blur(8px) saturate(130%)
+}
+body.themaGlas .drankTegel:hover{border-color:rgba(90,160,255,.5)}
+body.themaGlas .dkFoto{background:rgba(255,255,255,.94);box-shadow:0 2px 8px rgba(0,0,0,.35)}
+body.themaGlas .dkNaam{color:#e8f0fc}
+body.themaGlas .dkSectie{color:#9fb8dc}
+body.themaGlas .dkSectie::before,body.themaGlas .dkSectie::after{background:rgba(140,170,220,.25)}
+body.themaGlas .dkTelBadge{
+  background:linear-gradient(180deg,#3b82f6,#2563d0);
+  box-shadow:0 2px 8px rgba(37,99,235,.6),inset 0 1px 0 rgba(255,255,255,.3)
+}
+/* Filter- en tabbalken */
+body.themaGlas #filterbar{background:rgba(14,24,42,.4);border-bottom:1px solid rgba(120,150,200,.14)}
+body.themaGlas #locTabs{background:rgba(10,18,34,.5);border-bottom:1px solid rgba(120,150,200,.14)}
+body.themaGlas .drankTabs{background:transparent}
+/* Invoervelden subtiel doorschijnend */
+body.themaGlas input,body.themaGlas select,body.themaGlas textarea{background:rgba(20,32,56,.6);border:1px solid rgba(120,150,200,.2)}
+body.themaGlas #countbar{background:rgba(14,24,42,.5);border-bottom:1px solid rgba(120,150,200,.14)}
+body.themaGlas .tlBlock.verwacht{background:rgba(45,70,120,.72);color:#eaf1fb}
+body.themaGlas .sectionH span{background:rgba(59,130,246,.22);border-color:rgba(120,160,255,.4);color:#eaf1fb}
+body.themaGlas .sectionH::after{background:rgba(120,150,200,.22)}
+body.themaGlas .empty,body.themaGlas #content .leeg{color:#9fb3d4}
+/* Zijmenu en uitklapmenu met glaslook */
+body.themaGlas #sideRail{
+  background:rgba(8,15,30,.78);
+  backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);
+  border-right:1px solid rgba(120,150,200,.18)
+}
+body.themaGlas #drawer{
+  background:rgba(8,15,30,.9);
+  backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);
+  border-right:1px solid rgba(120,150,200,.2)
+}
+body.themaGlas #drawer nav button{color:#dbe8fb}
+body.themaGlas #sideRail button{color:#adc0dc}
+body.themaGlas #sideRail button.on{
+  background:linear-gradient(180deg,rgba(59,130,246,.28),rgba(37,99,235,.18));
+  color:#fff;box-shadow:inset 3px 0 0 var(--accent)
+}
+body.themaGlas #sideRail button.on svg{color:#7db4ff}
+body.themaGlas #sideRail button:hover{color:#dceafd}
+/* uitklapmenu-items ook blauw geselecteerd */
+body.themaGlas #drawer nav button.on{background:linear-gradient(90deg,rgba(59,130,246,.26),rgba(37,99,235,.12));color:#fff;box-shadow:inset 3px 0 0 var(--accent)}
+/* Bovenbalk in glaslook, maar houdt de blauwe kleur */
+body.themaGlas #topbar{
+  background:linear-gradient(180deg,rgba(37,99,235,.42),rgba(37,99,235,.26));
+  backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);
+  border-bottom:1px solid rgba(255,255,255,.14);
+  box-shadow:0 4px 20px rgba(0,0,0,.25)
+}
+/* Knoppen dezelfde glasachtige blauwe stijl als de bovenbalk */
+body.themaGlas #fabAdd,
+body.themaGlas .btn.primary,
+body.themaGlas .drankMenuBtn{
+  background:linear-gradient(180deg,rgba(37,99,235,.6),rgba(37,99,235,.4));
+  backdrop-filter:blur(12px) saturate(150%);-webkit-backdrop-filter:blur(12px) saturate(150%);
+  border:1px solid rgba(255,255,255,.22);
+  color:#fff
+}
+body.themaGlas #fabAdd:active,
+body.themaGlas .btn.primary:active,
+body.themaGlas .drankMenuBtn:active{
+  background:linear-gradient(180deg,rgba(37,99,235,.75),rgba(37,99,235,.55))
+}
+/* Inklap-knop (open stand) in dezelfde blauwe glasstijl */
+body.themaGlas.railOpen #railMenu{
+  background:linear-gradient(180deg,rgba(37,99,235,.6),rgba(37,99,235,.4));
+  border:1px solid rgba(255,255,255,.22);color:#fff
+}
+body.themaGlas.railOpen #railMenu:hover{background:linear-gradient(180deg,rgba(37,99,235,.72),rgba(37,99,235,.5))}
+
+
 .drankMenuBtn{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 78%,#000));border:1px solid color-mix(in srgb,var(--accent) 60%,#000);border-radius:999px;color:#fff;font-size:12.5px;font-weight:700;letter-spacing:.01em;padding:7px 14px;min-height:auto;box-shadow:0 2px 6px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.15);transition:transform .08s,box-shadow .12s,filter .12s}.drankMenuBtn:active{transform:scale(.96);filter:brightness(.92)}
 #drankOv{position:fixed;inset:0;z-index:220;background:var(--bg);display:flex;flex-direction:column;animation:kishFade .18s ease-out}
 .drankKop{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid var(--line);background:var(--panel)}
-.drankKop b{font-size:16px}
-.drankTabs{display:flex;gap:8px;padding:10px 14px;overflow-x:auto;background:var(--panel);border-bottom:1px solid var(--line)}
-.drankTabs button{background:var(--panel2);border:1px solid var(--line);border-radius:999px;color:var(--txt);font-size:13px;font-weight:700;padding:8px 15px;white-space:nowrap;min-height:auto}
-.drankTabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.drankKop{padding:calc(12px + env(safe-area-inset-top)) 18px 12px;gap:14px}
+.drankKop b{flex:1;text-align:center;font-size:15px}
+.drankKop .btn{flex:0 0 auto;min-width:112px;padding:8px 14px;font-size:13.5px;border-radius:9px;text-align:center}
+
+
+
+
+
+
+.drankTabs{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;background:var(--panel);border-bottom:1px solid var(--line);scrollbar-width:none}
+.drankTabs::-webkit-scrollbar{display:none}
+.drankTabs button{background:var(--panel2);border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:13px;font-weight:700;padding:8px 16px;white-space:nowrap;min-height:auto;transition:all .16s ease}
+.drankTabs button:hover{color:var(--txt);border-color:var(--accent)}
+.drankTabs button.on{background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 80%,#000));border-color:transparent;color:#fff;box-shadow:0 2px 10px color-mix(in srgb,var(--accent) 50%,transparent)}
+body.themaGlas .drankTabs{background:rgba(10,18,34,.5);border-bottom:1px solid rgba(120,150,200,.14)}
+body.themaGlas .drankTabs button{background:rgba(20,32,56,.5);border:1px solid rgba(120,150,200,.18);color:#aec2e0}
+body.themaGlas .drankTabs button.on{background:linear-gradient(180deg,rgba(59,130,246,.9),rgba(37,99,235,.7));border-color:rgba(255,255,255,.2);color:#fff;box-shadow:0 2px 12px rgba(37,99,235,.5)}
+body.themaGlas #locTabs button{background:rgba(20,32,56,.5);border:1px solid rgba(120,150,200,.18);color:#aec2e0}
+body.themaGlas #locTabs button.on{background:linear-gradient(180deg,rgba(59,130,246,.9),rgba(37,99,235,.7));border-color:rgba(255,255,255,.2);color:#fff;box-shadow:0 2px 12px rgba(37,99,235,.5)}
+/* Drankmenu-kop niet grijs maar in de blauwe glasstijl */
+body.themaGlas .drankKop{
+  background:linear-gradient(180deg,rgba(37,99,235,.32),rgba(37,99,235,.18));
+  backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);
+  border-bottom:1px solid rgba(255,255,255,.12)
+}
+body.themaGlas .drankKop b{color:#fff}
+body.themaGlas .drankKop .btn.ghost{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#eaf1fb}
+body.themaGlas .drankVoet{
+  background:linear-gradient(0deg,rgba(37,99,235,.28),rgba(37,99,235,.14));
+  backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);
+  border-top:1px solid rgba(255,255,255,.12);color:#eaf1fb
+}
 .drankGrid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:11px;padding:14px;align-content:start}
-.drankTegel{position:relative;background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:14px 6px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;user-select:none;-webkit-user-select:none;transition:transform .08s,box-shadow .12s;box-shadow:0 1px 3px rgba(0,0,0,.18)}.drankTegel:active{transform:scale(.95)}
+.drankTegel{position:relative;background:linear-gradient(165deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:18px;padding:16px 8px 13px;display:flex;flex-direction:column;align-items:center;gap:9px;cursor:pointer;user-select:none;-webkit-user-select:none;transition:transform .12s ease,box-shadow .16s ease,border-color .16s ease;box-shadow:0 2px 6px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.06)}.drankTegel::before{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(160deg,rgba(255,255,255,.06),transparent 45%);pointer-events:none;overflow:hidden}.drankTegel:active{transform:scale(.95)}@media (hover:hover){.drankTegel:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.28)}}
 .drankTegel:active{transform:scale(.94)}
-.drankTegel.aan{border-color:var(--accent);box-shadow:0 0 0 1.5px var(--accent),0 3px 12px rgba(0,0,0,.28);background:linear-gradient(180deg,var(--panel),color-mix(in srgb,var(--accent) 10%,var(--panel2)))}
-.dkFoto{width:74px;height:74px;object-fit:contain;border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25)}.dkSectie{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin:6px 2px 0;color:var(--muted);font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.dkSectie::before,.dkSectie::after{content:'';flex:1;height:1px;background:var(--line)}
+.drankTegel.aan{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent),0 4px 18px color-mix(in srgb,var(--accent) 40%,transparent);background:linear-gradient(165deg,color-mix(in srgb,var(--accent) 14%,var(--panel)),color-mix(in srgb,var(--accent) 20%,var(--panel2)))}.drankTegel.aan .dkFoto{box-shadow:0 3px 12px color-mix(in srgb,var(--accent) 40%,rgba(0,0,0,.3))}
+.dkFoto{width:76px;height:76px;object-fit:contain;border-radius:14px;background:#fff;box-shadow:0 2px 7px rgba(0,0,0,.28);transition:transform .12s ease}.dkSectie{grid-column:1/-1;display:flex;align-items:center;gap:12px;margin:10px 2px 2px;color:var(--muted);font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.dkSectie::before,.dkSectie::after{content:'';height:1px;background:var(--line);flex:1}.dkSectie::before{flex:0 0 4px}.dkSectie::before,.dkSectie::after{content:'';flex:1;height:1px;background:var(--line)}
 .dkFoto + .dkEmoji{display:none}
 .dkEmoji{font-size:30px;line-height:1}
 .dkNaam{font-size:12.5px;font-weight:700;text-align:center;line-height:1.25}
-.dkTelBadge{position:absolute;top:-8px;right:-8px;background:var(--accent);color:#fff;border-radius:999px;min-width:27px;height:27px;padding:0 4px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,.45)}
+.dkTelBadge{position:absolute;top:-7px;right:-7px;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 115%,#fff),var(--accent));color:#fff;border:1.5px solid rgba(255,255,255,.35);border-radius:999px;min-width:28px;height:28px;padding:0 5px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;box-shadow:0 3px 10px color-mix(in srgb,var(--accent) 55%,transparent),inset 0 1px 0 rgba(255,255,255,.4);z-index:2}
 .dkMin{position:absolute;top:-8px;left:-8px;background:#7f1d1d;color:#fecaca;border:1px solid #b91c1c;border-radius:999px;width:27px;height:27px;font-size:16px;font-weight:800;line-height:1;min-height:auto;padding:0}
 .drankVoet{padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--panel);font-size:13px;font-weight:600;line-height:1.5}
 #bezigBar,#tafelBar{background:#7a5b12;color:#ffe9b8;border:1px solid #a97f1d;border-radius:10px;padding:9px 13px;font-size:12.5px;font-weight:700;margin:4px 0 10px;animation:kishFade .2s ease-out}
@@ -275,6 +452,14 @@ body.themaHu #sideRail button.on svg,body.themaHu #sideRail button.on{color:#6dc
 .instRow{display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid var(--line);cursor:pointer;font-size:14.5px}
 .instRow:last-child{border-bottom:none}
 .instRow:active{background:var(--panel2)}
+.themaKeus{display:flex;gap:12px;margin-top:8px}
+.themaKaart{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px;border-radius:12px;background:var(--panel2);border:2px solid transparent;color:var(--txt);text-align:center}
+.themaKaart small{color:var(--muted);font-size:11.5px}
+.themaKaart.op{border-color:var(--accent)}
+.themaVb{width:100%;height:60px;border-radius:9px;margin-bottom:4px;border:1px solid var(--line)}
+.standaardVb{background:linear-gradient(180deg,#2563eb 0 30%,#1a1d26 30% 100%)}
+.glasVb{background:linear-gradient(150deg,#0a1220,#123e9e 70%,#0e7ab0)}
+
 .instRow .instChev{color:var(--muted);font-size:20px}
 .instRow .instMove{color:var(--muted);font-size:15px}
 .mcalOv{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:95;display:flex;align-items:center;justify-content:center}
@@ -533,7 +718,10 @@ body.themaHu #sideRail button.on svg,body.themaHu #sideRail button.on{color:#6dc
 #sheet{position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-radius:18px 18px 0 0;padding:18px 20px 30px;max-height:88vh;max-height:92dvh;overflow-y:auto}
 @media (min-width:700px){
   #sheet{left:auto;top:0;right:0;bottom:0;width:420px;height:100%;max-height:none;border-radius:0;border-left:1px solid var(--line)}
+  /* Drankmenu als paneel direct links naast het reserveringsformulier, niet meer vol scherm */
+  #drankOv{left:auto;right:420px;top:0;bottom:0;width:min(760px,calc(100vw - 480px));border-left:1px solid var(--line);border-right:1px solid var(--line);box-shadow:-8px 0 30px rgba(0,0,0,.35);animation:kishSchuif .22s ease-out}
 }
+@keyframes kishSchuif{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}
 .tafelPickBtn{width:100%;text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:11px 12px;font-size:15px}
 .tafelList{max-height:230px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px;background:var(--panel2)}
 .tafelList label.tRow{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:14px;margin:0;text-transform:none;letter-spacing:0;color:var(--txt);font-weight:600}
@@ -560,6 +748,7 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
 .card.st-no{opacity:.55}
 .card.st-no .tnr{box-shadow:inset 0 0 0 2px var(--red)}
 .tlBlock.no{background:#3a3f4e;border-left-color:var(--red);color:#aab;opacity:.7}
+.tlBlock.noshow{background:#7c2d3a;border-left-color:#e5304d;color:#ffd7dc}
 .tbl.no{border-color:var(--red);opacity:.6}
 #sheet h2{font-size:17px;margin-bottom:4px}
 .row2{display:flex;gap:16px}
@@ -580,8 +769,10 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
 @media (max-width:999px){
   
 }
-.tlHours{position:relative;height:34px;flex:0 0 auto}
-.tlHour{position:absolute;top:8px;font-size:13px;font-weight:700;color:var(--muted);transform:translateX(-50%)}
+.tlHours{position:relative;height:38px;flex:0 0 auto;border-bottom:1px solid var(--line);background:var(--bg)}
+.tlHour{position:absolute;top:7px;font-size:12.5px;font-weight:700;color:var(--txt);transform:translateX(-50%);letter-spacing:.02em}.tlHour::after{content:'';position:absolute;left:50%;top:20px;transform:translateX(-50%);width:1px;height:9px;background:var(--line)}
+.tlHour.start{transform:none;left:4px!important}
+.tlHour.start::after{left:8px}
 .tlLoc{display:none}
 .tlLocRow{position:sticky;left:0;padding:16px 6px 8px;font-size:14px;font-weight:800;width:max-content}
 .tlRow{display:flex;border-top:1px solid var(--line);width:max-content;min-width:100%}
@@ -596,8 +787,8 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
 .tlTrack{position:relative;flex:0 0 auto;min-height:46px}
 .tlRow:nth-child(even){background:rgba(255,255,255,.028)}
 .tlRow:nth-child(even) .tlLabel{background:#1b1f2a}
-.tlGrid{position:absolute;top:0;bottom:0;width:1px;background:var(--line);opacity:.7}
-.tlGrid.q{opacity:.22}
+.tlGrid{position:absolute;top:0;bottom:0;width:1px;background:var(--line);opacity:.5}
+.tlGrid.q{opacity:.16}
 .tlNow{position:absolute;top:0;bottom:0;width:2px;background:#e5304d;z-index:2;pointer-events:none}
 .tlNowDot{position:absolute;top:2px;width:10px;height:10px;border-radius:50%;background:#e5304d;transform:translateX(-50%)}
 .tlBlock{position:absolute;top:4px;bottom:4px;z-index:1;background:var(--accent2);border-left:8px solid var(--accent);border-radius:6px;color:#1a0d05;display:flex;align-items:center;gap:7px;padding:0 8px;overflow:hidden;white-space:nowrap;font-size:13.5px;cursor:pointer}
@@ -658,6 +849,7 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
   <button data-view="map" title="Plattegrond">
     <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><rect x="6.2" y="7.6" width="4.2" height="3.4" rx="1"/><rect x="13.6" y="7.6" width="4.2" height="3.4" rx="1"/><rect x="6.2" y="13" width="4.2" height="3.4" rx="1"/><rect x="13.6" y="13" width="4.2" height="3.4" rx="1"/></svg><span class="rlTxt">Plattegrond</span>
   </button>
+  <button type="button" id="railThema" title="Thema"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14M12 5v14"/></svg><span class="rlTxt">Thema</span></button>
   <button type="button" id="railInst" title="Instellingen"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M19.3 14.1a1.5 1.5 0 0 0 .3 1.7l.1.1a1.9 1.9 0 1 1-2.7 2.7l-.1-.1a1.5 1.5 0 0 0-1.7-.3 1.5 1.5 0 0 0-.9 1.4v.2a1.9 1.9 0 0 1-3.8 0v-.1a1.5 1.5 0 0 0-1-1.4 1.5 1.5 0 0 0-1.7.3l-.1.1a1.9 1.9 0 1 1-2.7-2.7l.1-.1a1.5 1.5 0 0 0 .3-1.7 1.5 1.5 0 0 0-1.4-.9h-.2a1.9 1.9 0 0 1 0-3.8h.1a1.5 1.5 0 0 0 1.4-1 1.5 1.5 0 0 0-.3-1.7l-.1-.1a1.9 1.9 0 1 1 2.7-2.7l.1.1a1.5 1.5 0 0 0 1.7.3h.1a1.5 1.5 0 0 0 .9-1.4v-.2a1.9 1.9 0 0 1 3.8 0v.1a1.5 1.5 0 0 0 .9 1.4 1.5 1.5 0 0 0 1.7-.3l.1-.1a1.9 1.9 0 1 1 2.7 2.7l-.1.1a1.5 1.5 0 0 0-.3 1.7v.1a1.5 1.5 0 0 0 1.4.9h.2a1.9 1.9 0 0 1 0 3.8h-.1a1.5 1.5 0 0 0-1.4.9z"/></svg><span class="rlTxt">Instellingen</span></button>
   <button type="button" id="railMenu" title="Menu openen"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg><span class="rlTxt">Inklappen</span></button>
 </div>
@@ -702,14 +894,14 @@ input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
   </button>
   </div>
 </div>
-<div id="filterbar" hidden>
+<div id="filterbar" class="dicht"><div id="filterInner">
   <div class="fltGroup"><label>Begin</label><input type="text" id="fltBegin" readonly inputmode="none" placeholder="--:--"></div>
   <span class="fltDash">-</span>
   <div class="fltGroup"><label>Einde</label><input type="text" id="fltEind" readonly inputmode="none" placeholder="--:--"></div>
   <div class="fltGroup grow"><label>Zaal</label><select id="fltZaal"></select></div>
   <div class="fltGroup grow"><label>Status</label><select id="fltStatus"></select></div>
   <button class="fltReset" id="fltReset">Wissen</button>
-</div>
+</div></div>
 
 <div id="locTabs"></div>
 <div id="content"></div>
@@ -944,6 +1136,8 @@ const btnInst = document.getElementById('btnInst');
 if(btnInst) btnInst.onclick = ()=>openInstellingen();
 const railInst = document.getElementById('railInst');
 if(railInst) railInst.onclick = ()=>openInstellingen();
+const railThema = document.getElementById('railThema');
+if(railThema) railThema.onclick = openThema;
 const railMenu = document.getElementById('railMenu');
 function zetRail(open){
   document.body.classList.toggle('railOpen', !!open);
@@ -2750,8 +2944,8 @@ if(zoekInp){
 const filterbar = document.getElementById('filterbar');
 const btnFilter = document.getElementById('btnFilter');
 document.getElementById('fltZaal').innerHTML = '<option value="">Alle zalen</option>'+LOCS.map(l=>`<option>${l}</option>`).join('');
-document.getElementById('fltStatus').innerHTML = '<option value="">Alles</option><option value="actief">Alle actieve</option>'+Object.entries(STATUS).map(([k,s])=>`<option value="${k}">${s.naam}</option>`).join('');
-btnFilter.onclick = ()=>{ filterbar.hidden = !filterbar.hidden; };
+document.getElementById('fltStatus').innerHTML = '<option value="">Alles</option><option value="actief">Alle actieve</option>'+['res','arr','nm','no'].map(k=>`<option value="${k}">${STATUS[k].naam}</option>`).join('');
+btnFilter.onclick = ()=>{ filterbar.classList.toggle('dicht'); };
 ['fltBegin','fltEind','fltZaal','fltStatus'].forEach(id=>{
   document.getElementById(id).onchange = (e)=>{
     filt[{fltBegin:'begin',fltEind:'eind',fltZaal:'zaal',fltStatus:'status'}[id]] = e.target.value;
@@ -2872,6 +3066,7 @@ function toonInstellingen(){
     <div class="instRow" id="rVerkocht"><b style="flex:1">Verkocht vandaag</b><span class="instChev">&#8250;</span></div>
     <div class="instRow" id="rArchief"><b style="flex:1">Dagarchief</b><span class="instChev">&#8250;</span></div>
     <div class="instRow" id="rBackup"><b style="flex:1">Reservekopie</b><span class="instChev">&#8250;</span></div>
+    <div class="instRow" id="rThema"><b style="flex:1">Weergave</b><span id="rThemaNu" style="color:var(--muted);font-size:12.5px;margin-right:6px"></span><span class="instChev">&#8250;</span></div>
     <div style="margin-top:22px;padding-top:14px;border-top:1px solid var(--line);text-align:center;color:var(--muted);font-size:12px;line-height:1.6">
       <b style="color:var(--txt);letter-spacing:.03em">KISH&trade;</b><br>
       Tafelreservering AFAS Circustheater<br>
@@ -2882,6 +3077,8 @@ function toonInstellingen(){
   pg.querySelector('#rVerkocht').onclick = instVerkocht;
   pg.querySelector('#rArchief').onclick = instArchief;
   pg.querySelector('#rBackup').onclick = instBackup;
+  pg.querySelector('#rThema').onclick = instThemaKeuze;
+  { const el = pg.querySelector('#rThemaNu'); if(el) el.textContent = store.get('ct_themaGlas', true) ? 'Blauw' : 'Standaard'; }
 }
 
 function instZalen(){
@@ -3207,6 +3404,37 @@ function supaLivePoll(){
   }).catch(()=>{ window._supaBereikbaar = null; toonOffline(!window._verbonden); });
 }
 window._supaLiveTimer = window._supaLiveTimer || setInterval(supaLivePoll, 8000);
+
+function zetGlasThema(aan){
+  document.body.classList.toggle('themaGlas', !!aan);
+  store.set('ct_themaGlas', !!aan);
+}
+// bij het opstarten meteen toepassen
+zetGlasThema(store.get('ct_themaGlas', true));
+
+function instThemaKeuze(){
+  const glasAan = store.get('ct_themaGlas', true);
+  const pg = instPagina([{n:'Instellingen', ga:toonInstellingen},{n:'Weergave', ga:instThemaKeuze}], `
+    <div class="instSub">Kies hoe Kish eruitziet op dit apparaat. De keuze geldt alleen hier, niet voor je collega's.</div>
+    <div class="themaKeus">
+      <button class="themaKaart ${glasAan?'':'op'}" data-glas="0">
+        <span class="themaVb standaardVb"></span>
+        <b>Standaard</b><small>Donkergrijs, stevig contrast</small>
+      </button>
+      <button class="themaKaart ${glasAan?'op':''}" data-glas="1">
+        <span class="themaVb glasVb"></span>
+        <b>Blauw</b><small>Schone blauwe achtergrond</small>
+      </button>
+    </div>`);
+  pg.querySelectorAll('.themaKaart').forEach(k=>{
+    k.onclick = ()=>{
+      const aan = k.dataset.glas === '1';
+      zetGlasThema(aan);
+      pg.querySelectorAll('.themaKaart').forEach(x=>x.classList.remove('op'));
+      k.classList.add('op');
+    };
+  });
+}
 
 function instBackup(){
   const kopies = [];
@@ -3849,7 +4077,7 @@ function renderDag(all){
   if(!list.length){ content.innerHTML = '<div class="empty">Helaas, geen reserveringen :-(</div>'; return; }
   let html = '', lastTijd = '';
   list.forEach(r=>{
-    if(r.tijd !== lastTijd){ html += `<div class="sectionH">${esc(r.tijd)}</div>`; lastTijd = r.tijd; }
+    if(r.tijd !== lastTijd){ html += `<div class="sectionH"><span>${esc(r.tijd)}</span></div>`; lastTijd = r.tijd; }
     html += cardHTML(r);
   });
   content.innerHTML = html;
@@ -3929,8 +4157,11 @@ function renderTafels(all){
   // Uurmarkeringen
   let hoursHTML = '';
   for(let m=start; m<=end; m+=60){
-    hoursHTML += `<div class="tlHour" style="left:${px(m)}px">${String(Math.floor(m/60)%24).padStart(2,'0')}:00</div>`;
+    const eersteUur = (m === start);
+    // Het eerste uur links uitlijnen zodat het niet half achter de tafelkolom verdwijnt
+    hoursHTML += `<div class="tlHour${eersteUur?' start':''}" style="left:${px(m)}px">${String(Math.floor(m/60)%24).padStart(2,'0')}:00</div>`;
   }
+  // een halve minuut extra ruimte links zodat het eerste uur netjes vrij staat van de tafelkolom
 
   let rows = '';
   (filt.zaal ? [filt.zaal] : LOCS).forEach(loc=>{
@@ -3972,7 +4203,7 @@ function renderTafels(all){
         const dim = INACTIVE.has(r.status);
         const s = px(eff);
         const w = Math.max(56, (dur/60)*PXH - 4);
-        const kls = r.status==='in' ? 'in' : (r.status==='arr' ? 'arr' : (r.status==='nm' ? 'nm' : 'verwacht'));
+        const kls = r.status==='in' ? 'in' : (r.status==='arr' ? 'arr' : (r.status==='nm' ? 'nm' : (r.status==='no' ? 'noshow' : 'verwacht')));
         const spanStijl = spanN > 1 ? `;bottom:auto;height:${spanN*47-9}px;z-index:6` : '';
         blocks += `<div class="tlBlock ${kls}${dim?' no':''}${tlLock?'':' sleepbaar'}" data-rid="${r.id}" style="left:${s}px;width:${w}px;border-left-color:${st.c}${spanStijl}" onclick="openFormById('${r.id}')">
           <b>${r.pax}</b><span class="tlNaam">${esc(r.naam)}</span>${combiTags(r) || `<span class="tlTag" style="background:${arrKleur(r.arr)}">${esc(r.arr)}</span>`}${isVerkocht(r)?'<span class="tlTag" style="background:#8b5cf6">Verkocht</span>':''}${r.notitie?`<span class="tlNote">${esc(r.notitie)}</span>`:''}${allergieTekst(r)?`<span class="tlTag" style="background:#e5304d">\u26a0 ${esc(allergieTekst(r))}</span>`:''}${bijzTekst(r)?`<span class="tlTag" style="background:#4d8dff">\u267F ${esc(bijzTekst(r))}</span>`:''}
@@ -4475,7 +4706,7 @@ setTimeout(autoNietGemeld, 3000);
 document.addEventListener('pointerdown', (e)=>{
   try{
     if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const b = e.target && e.target.closest && e.target.closest('.btn,.paxBtn,.fab,.shSave,.shBack,.drankMenuBtn,.tafelPickBtn');
+    const b = e.target && e.target.closest && e.target.closest('.btn,.paxBtn,.fab,.shSave,.shBack,.drankMenuBtn,.tafelPickBtn,.drankTabs button');
     if(!b || b.disabled) return;
     const r = b.getBoundingClientRect();
     if(!r.width) return;
