@@ -2265,6 +2265,7 @@ function openPAImport(){
 const MANAGER_PIN = '5555';
 // 5555 is de eigenaarscode: die ziet alles. Overige managercodes zien alleen het dagelijkse werk.
 let isEigenaar = false;
+let naamManager = '';   // naam die bij de ingevoerde managercode hoort
 const KATA_CODE = '1122'; // eigen code voor het themamenu
 const GOB_CODE  = '2222'; // eigen code voor het groene goblinthema
 function geldigePin(code){
@@ -3389,7 +3390,7 @@ function toonInstellingen(){
       <div class="instHeroIco">K</div>
       <div style="min-width:0">
         <div class="instHeroT">Instellingen</div>
-        <div class="instHeroS">${isEigenaar ? 'Je bent binnen met de eigenaarscode, alles staat open.' : 'Beheer van de dagelijkse gang van zaken.'}</div>
+        <div class="instHeroS">${isEigenaar ? 'Je bent binnen met de eigenaarscode, alles staat open.' : ('Welkom ' + esc(naamManager || 'manager') + ', alles staat voor je klaar.')}</div>
       </div>
       <span class="instRol">${isEigenaar ? 'Eigenaar' : 'Manager'}</span>
     </div>
@@ -4068,6 +4069,8 @@ function vraagPin(cb, alleenHoofd){
     const welk = code === KATA_CODE ? 'kata' : (code === GOB_CODE ? 'gob' : '');
     const themaOk = alleenHoofd === 'thema' && !!welk;
     const rol = code === MANAGER_PIN ? 'eigenaar' : 'manager';
+    const pinRij = (store.get('ct_pins', []) || []).find(x => x && String(x.code) === code);
+    naamManager = pinRij ? (pinRij.naam || '') : '';
     if((alleenHoofd === 'thema') ? themaOk : (alleenHoofd ? (code === MANAGER_PIN) : geldigePin(code))){ ov.remove(); cb(alleenHoofd === 'thema' ? welk : rol); }
     else{
       fout.textContent = 'Onjuiste code';
