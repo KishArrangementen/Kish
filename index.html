@@ -2219,6 +2219,8 @@ function openPAImport(){
   };
 }
 const MANAGER_PIN = '5555';
+// 5555 is de eigenaarscode: die ziet alles. Overige managercodes zien alleen het dagelijkse werk.
+let isEigenaar = false;
 const KATA_CODE = '1122'; // eigen code voor het themamenu
 const GOB_CODE  = '2222'; // eigen code voor het groene goblinthema
 function geldigePin(code){
@@ -3297,7 +3299,7 @@ function verankerBijVeld(ov, box, veld){
 /* ============ BEVESTIGINGSDIALOOG ============ */
 const instInp = 'background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px;color:inherit';
 
-window.openInstellingen = ()=>{ closeDrawer(); vraagPin(()=> toonInstellingen()); };
+window.openInstellingen = ()=>{ closeDrawer(); vraagPin((rol)=>{ isEigenaar = (rol === 'eigenaar'); toonInstellingen(); }); };
 
 // Paginaraamwerk zoals de DISH-instellingen: oranje kop, kruimelpad, inhoudskaart
 function instPagina(kruimels, inhoud){
@@ -3313,35 +3315,41 @@ function instPagina(kruimels, inhoud){
     <div class="instWrap"><div class="instCard">${inhoud}</div></div>`;
   document.body.appendChild(pg);
   pg.querySelector('#instTerug').onclick = ()=>{
-    if(kruimels.length>1) kruimels[kruimels.length-2].ga(); else pg.remove();
+    if(kruimels.length>1) kruimels[kruimels.length-2].ga(); else { isEigenaar = false; pg.remove(); }
   };
   pg.querySelectorAll('.instCrumb a').forEach(a=> a.onclick = ()=> kruimels[+a.dataset.i].ga());
   return pg;
 }
-window.sluitInstellingen = ()=>{ const p = document.querySelector('.instPage'); if(p) p.remove(); };
+window.sluitInstellingen = ()=>{ isEigenaar = false; const p = document.querySelector('.instPage'); if(p) p.remove(); };
 
 function toonInstellingen(){
   const pg = instPagina([{n:'Instellingen', ga:toonInstellingen}], `
     <div class="instH">Instellingen</div>
-    <div class="instSub">Beheer van zalen, tafels en managercodes.</div>
-    <div class="instRow" id="rZalen"><b style="flex:1">Zalen &amp; Tafels</b><span class="instChev">&#8250;</span></div>
-    <div class="instRow" id="rManagers"><b style="flex:1">Managers</b><span class="instChev">&#8250;</span></div>
-    <div class="instRow" id="rVerkocht"><b style="flex:1">Verkocht vandaag</b><span class="instChev">&#8250;</span></div>
+    <div class="instSub">${isEigenaar ? 'Volledig beheer.' : 'Beheer van zalen, tafels en de dagelijkse gang van zaken.'}</div>
     <div class="instRow" id="rArchief"><b style="flex:1">Dagarchief</b><span class="instChev">&#8250;</span></div>
+    <div class="instRow" id="rVerkocht"><b style="flex:1">Verkocht vandaag</b><span class="instChev">&#8250;</span></div>
+    <div class="instRow" id="rZalen"><b style="flex:1">Zalen &amp; Tafels</b><span class="instChev">&#8250;</span></div>
     <div class="instRow" id="rBackup"><b style="flex:1">Reservekopie</b><span class="instChev">&#8250;</span></div>
-    <div class="instRow" id="rThema"><b style="flex:1">Weergave</b><span id="rThemaNu" style="color:var(--muted);font-size:12.5px;margin-right:6px"></span><span class="instChev">&#8250;</span></div>
+    ${isEigenaar ? `
+    <div class="instKopRij" style="margin-top:16px"><span style="flex:1">Alleen voor de eigenaar</span></div>
+    <div class="instRow" id="rManagers"><b style="flex:1">Managers</b><span class="instChev">&#8250;</span></div>
+    <div class="instRow" id="rVangnet"><b style="flex:1">Extern vangnet</b><span id="rVangnetNu" style="color:var(--muted);font-size:12.5px;margin-right:6px"></span><span class="instChev">&#8250;</span></div>
+    <div class="instRow" id="rThema"><b style="flex:1">Weergave</b><span id="rThemaNu" style="color:var(--muted);font-size:12.5px;margin-right:6px"></span><span class="instChev">&#8250;</span></div>` : ''}
     <div style="margin-top:22px;padding-top:14px;border-top:1px solid var(--line);text-align:center;color:var(--muted);font-size:12px;line-height:1.6">
       <b style="color:var(--txt);letter-spacing:.03em">KISH&trade;</b><br>
       Tafelreservering AFAS Circustheater<br>
       &copy; ${new Date().getFullYear()} Kevin Kiene &middot; alle rechten voorbehouden
     </div>`);
-  pg.querySelector('#rZalen').onclick = instZalen;
-  pg.querySelector('#rManagers').onclick = instManagers;
-  pg.querySelector('#rVerkocht').onclick = instVerkocht;
-  pg.querySelector('#rArchief').onclick = instArchief;
-  pg.querySelector('#rBackup').onclick = instBackup;
-  pg.querySelector('#rThema').onclick = instThemaKeuze;
+  const bind = (id, fn)=>{ const el = pg.querySelector(id); if(el) el.onclick = fn; };
+  bind('#rZalen', instZalen);
+  bind('#rVerkocht', instVerkocht);
+  bind('#rArchief', instArchief);
+  bind('#rBackup', instBackup);
+  bind('#rManagers', instManagers);
+  bind('#rVangnet', instVangnet);
+  bind('#rThema', instThemaKeuze);
   { const el = pg.querySelector('#rThemaNu'); if(el) el.textContent = store.get('ct_themaGlas', true) ? 'Blauw' : 'Standaard'; }
+  { const el = pg.querySelector('#rVangnetNu'); if(el) el.textContent = reserveKlaar() ? 'aan' : 'uit'; }
 }
 
 function instZalen(){
@@ -3676,6 +3684,7 @@ function zetGlasThema(aan){
 zetGlasThema(store.get('ct_themaGlas', true));
 
 function instThemaKeuze(){
+  if(!isEigenaar){ toonInstellingen(); return; }
   const glasAan = store.get('ct_themaGlas', true);
   const pg = instPagina([{n:'Instellingen', ga:toonInstellingen},{n:'Weergave', ga:instThemaKeuze}], `
     <div class="instSub">Kies hoe Kish eruitziet op dit apparaat. De keuze geldt alleen hier, niet voor je collega's.</div>
@@ -3699,22 +3708,23 @@ function instThemaKeuze(){
   });
 }
 
-function instBackup(){
-  const kopies = [];
-  for(let i = 0; i < localStorage.length; i++){
-    const k = localStorage.key(i);
-    if(!k || !k.startsWith('ct_backup_')) continue;
-    const datum = k.slice(10);
-    const v = store.get(k, null);
-    if(v && Array.isArray(v.lijst)) kopies.push({ datum, t: v.t, aantal: v.lijst.length });
-  }
-  kopies.sort((a,b) => b.datum.localeCompare(a.datum));
+// Een eerdere stand van een dag terugzetten, gebruikt door reservekopie en vangnet
+function herstelStand(datum, lijst, tijdTekst){
+  vraag('De stand van <b>'+esc(fmtDate(datum))+'</b> van '+tijdTekst+' terugzetten?<br><small style="color:var(--muted)">De huidige stand wordt overschreven, ook op de andere apparaten.</small>', ()=>{
+    store.set('ct_res_' + datum, lijst);
+    if(db){
+      db.ref(syncPad + '/res/' + datum).set(null).then(()=>{ lijst.forEach(r => syncSetRes(datum, r)); });
+    }
+    if(curDate === datum) render();
+    toast('Reservekopie teruggezet', 'groen');
+  });
+}
 
-  const pg = instPagina([{n:'Instellingen', ga:toonInstellingen},{n:'Reservekopie', ga:instBackup}], `
-    <div class="instH">Reservekopie</div>
-    <div class="instSub">Kish bewaart automatisch elke 10 minuten een gedeelde kopie van vandaag (alleen als er iets gewijzigd is), plus een kopie v&oacute;&oacute;r elke PA-import. Terugzetten herstelt drankjes, statussen en tafels op alle apparaten.</div>
-    <div class="instRow" id="rsvToggle" style="margin-top:6px"><b style="flex:1">Extern vangnet</b><span id="rsvKort" style="color:var(--muted);font-size:12.5px;margin-right:8px"></span><span class="instChev" id="rsvChev">&#8250;</span></div>
-    <div id="rsvBlok" style="display:none">
+function instVangnet(){
+  if(!isEigenaar){ toonInstellingen(); return; }
+  const pg = instPagina([{n:'Instellingen', ga:toonInstellingen},{n:'Extern vangnet', ga:instVangnet}], `
+    <div class="instH">Extern vangnet</div>
+    <div class="instRow" style="cursor:default;margin-top:4px"><b style="flex:1">Vangnet</b><span id="rsvKort" style="color:var(--muted);font-size:12.5px"></span></div>
     <div class="instSub">Extra beveiliging: elke 5 minuten wordt de dag apart weggeschreven op een tweede plek. Valt de gewone verbinding weg, dan schakelt Kish vanzelf over zodat alle apparaten elkaar blijven zien, en weer terug zodra alles normaal is. Vul alleen het wachtwoord in, de rest staat al goed.</div>
     <div id="rsvStatus" class="instSub" style="padding:0 0 8px"></div>
     <label style="text-transform:none;font-size:11.5px;color:var(--muted)">Adres vangnet</label>
@@ -3730,36 +3740,9 @@ function instBackup(){
       <button class="btn ghost" id="rsvHerstel">Terugzetten uit vangnet</button>
       <button class="btn danger" id="rsvUit" style="display:none">Uitzetten</button>
     </div>
-    </div>
-    <div style="display:flex;gap:8px;margin:4px 0 14px">
-      <button class="btn ghost" id="bkDownload">Download vandaag als bestand</button>
-      <label class="btn ghost" style="cursor:pointer">Bestand terugzetten<input type="file" id="bkUpload" accept=".json" style="display:none"></label>
-    </div>
-    <div class="instKopRij"><span style="flex:1">Automatische kopie&euml;n van vandaag (gedeeld)</span></div>
-    <div id="bkAuto"><div class="instSub" style="padding:8px 0">Laden...</div></div>
-    <div class="instKopRij" style="margin-top:10px"><span style="flex:1">Kopie&euml;n van v&oacute;&oacute;r een import (dit apparaat)</span></div>
-    ${kopies.length ? kopies.map(k=>`
-      <div class="instRow" style="cursor:default">
-        <b style="flex:1">${esc(fmtDate(k.datum))}</b>
-        <span style="color:var(--muted);font-size:12.5px">${k.aantal} res. &middot; ${new Date(k.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}</span>
-        <button class="btn primary" data-lokaal="${esc(k.datum)}">Terugzetten</button>
-      </div>`).join('') : '<div class="instSub" style="padding:8px 0">Nog geen import-kopie op dit apparaat.</div>'}`);
+`);
 
-  // --- Extern vangnet: alleen open te klappen met de managercode ---
-  const rsvBlok = pg.querySelector('#rsvBlok');
-  const rsvChev = pg.querySelector('#rsvChev');
   pg.querySelector('#rsvKort').textContent = reserveKlaar() ? 'aan' : 'uit';
-  pg.querySelector('#rsvToggle').onclick = ()=>{
-    if(rsvBlok.style.display !== 'none'){
-      rsvBlok.style.display = 'none';
-      rsvChev.style.transform = '';
-      return;
-    }
-    vraagPin(()=>{
-      rsvBlok.style.display = '';
-      rsvChev.style.transform = 'rotate(90deg)';
-    }, true);
-  };
 
   // --- Extern vangnet: velden vullen en knoppen ---
   const rsvCfg = reserveCfg();
@@ -3812,27 +3795,45 @@ function instBackup(){
     reserveOphalen(curDate).then(row=>{
       if(!row || !row.data || !Array.isArray(row.data.res)){ toast('Geen vangnetkopie gevonden voor deze dag'); return; }
       const tijd = new Date(row.bijgewerkt).toLocaleString('nl-NL',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'});
-      zetTerug(row.datum, row.data.res, tijd + ' (extern vangnet)');
+      herstelStand(row.datum, row.data.res, tijd + ' (extern vangnet)');
     }).catch(e=> toast('Ophalen mislukt: ' + e.message));
   };
+}
 
-  const zetTerug = (datum, lijst, tijdTekst)=>{
-    vraag('De stand van <b>'+esc(fmtDate(datum))+'</b> van '+tijdTekst+' terugzetten?<br><small style="color:var(--muted)">De huidige stand wordt overschreven, ook op de andere apparaten.</small>', ()=>{
-      store.set('ct_res_' + datum, lijst);
-      if(db){
-        db.ref(syncPad + '/res/' + datum).set(null).then(()=>{ lijst.forEach(r => syncSetRes(datum, r)); });
-      }
-      if(curDate === datum) render();
-      toast('Reservekopie teruggezet', 'groen');
-    });
-  };
+function instBackup(){
+  const kopies = [];
+  for(let i = 0; i < localStorage.length; i++){
+    const k = localStorage.key(i);
+    if(!k || !k.startsWith('ct_backup_')) continue;
+    const datum = k.slice(10);
+    const v = store.get(k, null);
+    if(v && Array.isArray(v.lijst)) kopies.push({ datum, t: v.t, aantal: v.lijst.length });
+  }
+  kopies.sort((a,b) => b.datum.localeCompare(a.datum));
+
+  const pg = instPagina([{n:'Instellingen', ga:toonInstellingen},{n:'Reservekopie', ga:instBackup}], `
+    <div class="instH">Reservekopie</div>
+    <div class="instSub">Kish bewaart automatisch elke 10 minuten een gedeelde kopie van vandaag (alleen als er iets gewijzigd is), plus een kopie v&oacute;&oacute;r elke PA-import. Terugzetten herstelt drankjes, statussen en tafels op alle apparaten.</div>
+    <div style="display:flex;gap:8px;margin:4px 0 14px">
+      <button class="btn ghost" id="bkDownload">Download vandaag als bestand</button>
+      <label class="btn ghost" style="cursor:pointer">Bestand terugzetten<input type="file" id="bkUpload" accept=".json" style="display:none"></label>
+    </div>
+    <div class="instKopRij"><span style="flex:1">Automatische kopie&euml;n van vandaag (gedeeld)</span></div>
+    <div id="bkAuto"><div class="instSub" style="padding:8px 0">Laden...</div></div>
+    <div class="instKopRij" style="margin-top:10px"><span style="flex:1">Kopie&euml;n van v&oacute;&oacute;r een import (dit apparaat)</span></div>
+    ${kopies.length ? kopies.map(k=>`
+      <div class="instRow" style="cursor:default">
+        <b style="flex:1">${esc(fmtDate(k.datum))}</b>
+        <span style="color:var(--muted);font-size:12.5px">${k.aantal} res. &middot; ${new Date(k.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}</span>
+        <button class="btn primary" data-lokaal="${esc(k.datum)}">Terugzetten</button>
+      </div>`).join('') : '<div class="instSub" style="padding:8px 0">Nog geen import-kopie op dit apparaat.</div>'}`);
 
   pg.querySelectorAll('button[data-lokaal]').forEach(bt=>{
     bt.onclick = ()=>{
       const datum = bt.dataset.lokaal;
       const v = store.get('ct_backup_' + datum, null);
       if(!v || !Array.isArray(v.lijst)){ toast('Reservekopie niet gevonden'); return; }
-      zetTerug(datum, v.lijst, new Date(v.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}));
+      herstelStand(datum, v.lijst, new Date(v.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}));
     };
   });
 
@@ -3852,7 +3853,7 @@ function instBackup(){
       auto.querySelectorAll('button[data-uur]').forEach(bt=>{
         bt.onclick = ()=>{
           const d = v[bt.dataset.uur];
-          if(d && Array.isArray(d.lijst)) zetTerug(todayStr(), d.lijst, bt.dataset.uur + ':00 uur');
+          if(d && Array.isArray(d.lijst)) herstelStand(todayStr(), d.lijst, bt.dataset.uur + ':00 uur');
         };
       });
     }).catch(()=>{ auto.innerHTML = '<div class="instSub" style="padding:8px 0">Kopie&euml;n konden niet geladen worden.</div>'; });
@@ -3878,13 +3879,14 @@ function instBackup(){
       try{
         const d = JSON.parse(txt);
         if(!d.datum || !Array.isArray(d.lijst)) throw new Error('formaat');
-        zetTerug(d.datum, d.lijst, 'het bestand');
+        herstelStand(d.datum, d.lijst, 'het bestand');
       }catch(err){ toast('Bestand niet herkend'); }
     });
   };
 }
 
 function instManagers(){
+  if(!isEigenaar){ toonInstellingen(); return; }
   const pins = store.get('ct_pins', []) || [];
   const pg = instPagina([{n:'Instellingen', ga:toonInstellingen},{n:'Managers', ga:instManagers}], `
     <div style="display:flex;align-items:flex-start;gap:12px">
@@ -3967,7 +3969,8 @@ function vraagPin(cb, alleenHoofd){
     const code = veld.value.trim();
     const welk = code === KATA_CODE ? 'kata' : (code === GOB_CODE ? 'gob' : '');
     const themaOk = alleenHoofd === 'thema' && !!welk;
-    if((alleenHoofd === 'thema') ? themaOk : (alleenHoofd ? (code === MANAGER_PIN) : geldigePin(code))){ ov.remove(); cb(welk); }
+    const rol = code === MANAGER_PIN ? 'eigenaar' : 'manager';
+    if((alleenHoofd === 'thema') ? themaOk : (alleenHoofd ? (code === MANAGER_PIN) : geldigePin(code))){ ov.remove(); cb(alleenHoofd === 'thema' ? welk : rol); }
     else{
       fout.textContent = 'Onjuiste code';
       veld.value = '';
